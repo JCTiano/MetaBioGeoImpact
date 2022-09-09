@@ -56,7 +56,7 @@ CHrec2 = CHrec
 
 ```{r, fig.height = 7, fig.width = 6, warning=FALSE}
 # data needed
-OCmod.cvellog  <- rma(lnRR, VarLnRR, mods = log(cvel), data = OC2)
+OCmod.cvellog  <- rma(lnRR, VarLnRR, mods = log(cvel), data = OC2 )
 
 setwd("~/GitHub/Metastudy/Figures/Supplementary")
 
