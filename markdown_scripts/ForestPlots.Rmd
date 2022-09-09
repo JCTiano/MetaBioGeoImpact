@@ -1,0 +1,314 @@
+---
+title: "Metaregression edits"
+author: "Emil De Borger"
+date: '2022-06-14'
+output: html_document
+---
+
+# Intro
+
+# Startup
+
+### Load packages
+
+```{r setup, include=FALSE}
+
+require(metafor)
+source("http://highstat.com/Books/BGS/GAMM/RCodeP2/HighstatLibV6.R")
+
+```
+
+### Load data
+
+```{r}
+
+load("../r_objects/Exp-Obs.rda")
+load("../r_objects/Meta.dat.Rda")
+
+```
+
+### Data wrangling
+
+- Removing some unneccesary tables.
+
+```{r}
+
+cs <- c(1,2,3,4,5,7,8,9,10,11,12,13,34,35,37,39,40,41,42,43,44,45,46,47,48,49,58,60,80)
+
+# Removing excess columns
+OC2    <- as.data.frame(OC[, cs])
+CH2    <- as.data.frame(CH[, cs])
+OCrec2 <- as.data.frame(OCrec[, cs])
+CHrec2 <- as.data.frame(CHrec[, cs])
+
+# New column names
+nms <- c("article", "expobs", "studytype", "hstudytype", "Location", "longhurstprov", "hhabtype",
+         "hseason", "htrawlgear", "watdepth", "slicedepth", "respvar", "timetrawldays",
+         "htrawleffort", "trawleffortGFW", "histfished", "chlabot", "cvel", "doxy",
+         "nitbot", "phosbot", "salbot", "silbot", "tempbot", "nppsurf", "distshore",
+         "LnRR", "varLnRR", "region2")
+facs <- c("expobs", "studytype", "hstudytype", "longhurstprov", "hhabtype",
+         "hseason", "htrawlgear", "slicedepth", "histfished", "region2")
+
+colnames(OC2)    <- nms
+colnames(CH2)    <- nms
+colnames(OCrec2) <- nms
+colnames(CHrec2) <- nms
+
+OC2[facs]    <- lapply(OC2[facs], factor) 
+CH2[facs]    <- lapply(CH2[facs], factor) 
+OCrec2[facs] <- lapply(OCrec2[facs], factor) 
+CHrec2[facs] <- lapply(CHrec2[facs], factor)
+
+# Add study names (manual)
+authsOC2 <- c("Paradis et al., 2021", "Ferguson et al., 2020", "Ramalho et al., 2020",
+           "Tiano et al., 2019", "Liu et al., 2011", "Brown et al., 2005", 
+           "Palanques et al., 2005", "Fiordelmonde et al., 2003", "Watling et al., 2001",
+           "Tuck et al., 1998", "Eleftheriou et al., 1992", "Mayer et al., 1991")
+OC2$artname <- factor(OC2$article, levels = unique(OC2$article), labels = authsOC2)
+
+authsCH2 <- c("Morys et al., 2021", "Tiano et al., 2019", "Brown et al., 2005", 
+              "Polymenakou et al., 2005", "Huang et al., 2003", "Fiordelmonde et al., 2003",
+              "Sparks-McConkey et al., 2001", "Watling et al., 2001", 
+              "Eleftheriou et al., 1992", "Mayer et al., 1991")
+CH2$artname <- factor(CH2$article, levels = unique(CH2$article), labels = authsCH2)
+
+authsOCrec <- c("Paradis et al., 2021", "Ferguson et al., 2020", "Ramalho et al., 2020",
+           "Tiano et al., 2019", "Dannheim et al., 2014", "Meseck et al., 2014",
+           "Liu et al., 2011", "Martin et al., 2014", "Brown et al., 2005",
+           "Palanques et al., 2014", "Polymenakou et al., 2005", "Fiordelmonde et al., 2003",
+           "Watling et al., 2001", "Tuck et al., 1998", "Eleftheriou et al., 1992", "Mayer et al., 1991")
+OCrec2$artname <- factor(OCrec2$article, levels = unique(OCrec2$article), labels = authsOCrec)
+
+authsCHrec <- c("Morys et al., 2021", "Tiano et al., 2019", "Brown et al., 2005", 
+                "Polymenakou et al., 2005", "Huang et al., 2003", "Fiordelmonde et al., 2003",
+                "Sparks-McConkey et al., 2001", "Watling et al., 2001", "Smith et al., 2000",
+                "Eleftheriou et al., 1992", "Mayer et al., 1991")
+CHrec2$artname <- factor(CHrec2$article, levels = unique(CHrec2$article), labels = authsCHrec)
+```
+
+# Update data
+ - Add Tiano et al 2022
+```{r, warning=FALSE}
+load("../r_objects/meta.dat2.Rda")
+
+# reconfigure stuff (data wrangling)
+datfix = function(df){
+  df$region2 = df$Region
+  df = df[,-c(2,7,12,13,17:36,39,41,53:60,62,64:84)]
+  colnames(df)[1:29] = colnames(OC2)
+  df = subset(df, article == 0)
+  df$artname = "Tiano et al., 2022"
+    return(df)}
+JTOC = datfix(OC)
+JTOCrec = datfix(OCrec)
+JTCH = datfix(CH)
+JTCHrec = datfix(CHrec)
+
+# Bind new data and take out rows with na's
+OC2 = rbind(JTOC,OC2[complete.cases(OC2$LnRR),])
+OCrec2 = rbind(JTOCrec,OCrec2[complete.cases(OCrec2$LnRR),])
+CH2 = rbind(JTCHrec,CH2)
+CHrec2 = rbind(JTCHrec,CHrec2)
+```
+
+## OC Short-term
+  
+Load models for forest plot
+```{r, warning = FALSE}
+
+OCmod.depth <- rma(LnRR, varLnRR, mods = watdepth , data = OC2)
+OCmod.sal   <- rma(LnRR, varLnRR, mods = salbot   , data = OC2)
+OCmod.cvel  <- rma(LnRR, varLnRR, mods = cvel     , data = OC2)
+
+## Log transforming
+### No indication to log transform salinity
+### AIC of depthlog not significantly lower. Just looks better on a graph.
+OCmod.depthlog <- rma(LnRR, varLnRR, mods = log(watdepth), data = OC2)
+OCmod.cvellog  <- rma(LnRR, varLnRR, mods = log(cvel)    , data = OC2)
+
+OCmod.NPP  <- rma(LnRR, varLnRR, mods = nppsurf, data = OC2)
+OCmod.phos <- rma(LnRR, varLnRR, mods = phosbot, data = OC2)
+OCmod.sil  <- rma(LnRR, varLnRR, mods = silbot , data = OC2)
+
+## Log transforming
+## Not useful for NPP, only for Phosphorus.
+OCmod.NPPlog  <- rma(LnRR, varLnRR, mods = log(nppsurf), data = OC2)
+OCmod.phoslog <- rma(LnRR, varLnRR, mods = log(phosbot), data = OC2)
+
+```
+
+### Forest plots (OC short-term)
+
+```{r, fig.height = 8, fig.width = 6}
+setwd("~/GitHub/Metastudy/Figures")
+
+# Assign 0 to varLnRR where NaN.
+pdf("rforestplot_OC.pdf", width = 6, height = 8)
+OC3 <- OC2
+OC3$varLnRR[is.nan(OC2$varLnRR)] <- 0
+
+forest(OC3$LnRR, OC3$varLnRR, slab = OC3$artname, ylim = c(-4.5, 52),)
+text(-0.7, 51, "Log response ratio", pos = 4, font = 2)
+text(-4, 51, "Study", pos = 4, font = 3)
+text(4.3, 51, "LnRR [95% CI]", pos = 2, font = 3)
+
+preds <- predict(OCmod.cvellog, newmods = c(-4.605, -2.996, -2.303, -1.386))
+addpoly(preds$pred, sei = preds$se,
+mlab = c("0.01 m/s", "0.05 m/s", "0.1 m/s", "0.2 m/s"))
+abline(h = 0)
+
+dev.off()
+
+```
+
+## OC Comprehensive
+
+Load models for forest plot
+```{r, warning=FALSE}
+
+OCrecmod.depth <- rma(LnRR, varLnRR, mods = watdepth , data = OCrec2)
+OCrecmod.sal   <- rma(LnRR, varLnRR, mods = salbot   , data = OCrec2)
+OCrecmod.cvel  <- rma(LnRR, varLnRR, mods = cvel     , data = OCrec2)
+
+## Log transforming
+### No indication to log transform depth or salinity
+OCrecmod.depthlog <- rma(LnRR, varLnRR, mods = log(watdepth), data = OCrec2)
+OCrecmod.sallog   <- rma(LnRR, varLnRR, mods = log(salbot)  , data = OCrec2)
+OCrecmod.cvellog  <- rma(LnRR, varLnRR, mods = log(cvel)    , data = OCrec2)
+
+OCrecmod.NPP  <- rma(LnRR, varLnRR, mods = nppsurf, data = OCrec2)
+OCrecmod.phos <- rma(LnRR, varLnRR, mods = phosbot, data = OCrec2)
+OCrecmod.sil  <- rma(LnRR, varLnRR, mods = silbot , data = OCrec2)
+
+## Log transforming
+## Not useful for NPP, only for Phosphorus.
+OCrecmod.NPPlog  <- rma(LnRR, varLnRR, mods = log(nppsurf), data = OCrec2)
+OCrecmod.phoslog <- rma(LnRR, varLnRR, mods = log(phosbot), data = OCrec2)
+OCrecmod.sillog  <- rma(LnRR, varLnRR, mods = log(silbot) , data = OCrec2)
+
+```
+
+### Forest plots (OC comprehensive)
+
+```{r, fig.height = 8, fig.width = 6, warning=FALSE}
+setwd("~/GitHub/Metastudy/Figures")
+
+# Assign 0 to varLnRR where NaN.
+pdf("rforestplot_OCcomp.pdf", width = 6, height = 8)
+
+OCrec3 <- OCrec2
+OCrec3$varLnRR[is.nan(OCrec2$varLnRR)] <- 0
+
+forest(OCrec3$LnRR, OCrec3$varLnRR, slab = OCrec3$artname, ylim = c(-4, 67), xlim = c(-4, 3))
+text(-1, 66, "Log response ratio", pos = 4, font = 2)
+text(-4, 66, "Study", pos = 4, font = 3)
+text(3, 66, "LnRR [95% CI]", pos = 2, font = 3)
+
+preds <- predict(OCrecmod.cvellog, newmods = c(-4.605, -2.996, -2.303, -1.386))
+addpoly(preds$pred, sei = preds$se,
+mlab = c("0.01 m/s", "0.05 m/s", "0.1 m/s", "0.2 m/s"))
+abline(h = 0)
+
+dev.off()
+```
+## Chlorophyll a
+
+Load models for forest plot
+```{r, warning=FALSE}
+
+CHmod.depth <- rma(LnRR, varLnRR, mods = watdepth , data = CH2)
+CHmod.sal   <- rma(LnRR, varLnRR, mods = salbot   , data = CH2)
+CHmod.cvel  <- rma(LnRR, varLnRR, mods = cvel     , data = CH2)
+
+## Log transforming
+## Only cvel is a relevant drop in AIC.
+CHmod.depthlog <- rma(LnRR, varLnRR, mods = log(watdepth), data = CH2)
+CHmod.sallog   <- rma(LnRR, varLnRR, mods = log(salbot)  , data = CH2)
+CHmod.cvellog  <- rma(LnRR, varLnRR, mods = log(cvel)    , data = CH2)
+
+CHmod.NPP  <- rma(LnRR, varLnRR, mods = nppsurf, data = CH2)
+CHmod.phos <- rma(LnRR, varLnRR, mods = phosbot, data = CH2)
+CHmod.sil  <- rma(LnRR, varLnRR, mods = silbot , data = CH2)
+
+## Log transforming
+CHmod.NPPlog  <- rma(LnRR, varLnRR, mods = log(nppsurf), data = CH2)
+CHmod.phoslog <- rma(LnRR, varLnRR, mods = log(phosbot), data = CH2)
+CHmod.sillog  <- rma(LnRR, varLnRR, mods = log(silbot) , data = CH2)
+
+```
+
+### Forest plots (Chl-a short-term)
+
+```{r, fig.height = 8, fig.width = 6, warning=FALSE}
+setwd("~/GitHub/Metastudy/Figures")
+
+pdf("rforestplot_chla.pdf", width = 6, height = 8)
+# Assign 0 to varLnRR where NaN.
+CH3 <- CH2
+CH3$varLnRR[is.nan(CH2$varLnRR)] <- 0
+
+forest(CH3$LnRR, CH3$varLnRR, slab = CH3$artname, ylim = c(-4.5, 68), xlim = c(-7, 3.5))
+text(-3, 67, "Log response ratio", pos = 4, font = 2)
+text(-7, 67, "Study", pos = 4, font = 3)
+text(2.8, 67, "LnRR [95% CI]", pos = 2, font = 3)
+
+preds <- predict(CHmod.NPPlog, newmods = c(-5.8, -2.996, -2.303))
+addpoly(preds$pred, sei = preds$se,
+mlab = c("0.003 NPP", "0.05 NPP", "0.1 NPP"))
+abline(h = 0)
+
+dev.off()
+
+```
+
+## Chl-a Comprehensive
+
+Load models for forest plot
+```{r, warning=FALSE}
+
+CHrecmod.depth <- rma(LnRR, varLnRR, mods = watdepth , data = CHrec2)
+CHrecmod.sal   <- rma(LnRR, varLnRR, mods = salbot   , data = CHrec2)
+CHrecmod.cvel  <- rma(LnRR, varLnRR, mods = cvel     , data = CHrec2)
+
+## Log transforming
+### No indication to log transform depth or salinity
+CHrecmod.depthlog <- rma(LnRR, varLnRR, mods = log(watdepth), data = CHrec2)
+CHrecmod.sallog   <- rma(LnRR, varLnRR, mods = log(salbot)  , data = CHrec2)
+CHrecmod.cvellog  <- rma(LnRR, varLnRR, mods = log(cvel)    , data = CHrec2)
+
+CHrecmod.NPP  <- rma(LnRR, varLnRR, mods = nppsurf, data = CHrec2)
+CHrecmod.phos <- rma(LnRR, varLnRR, mods = phosbot, data = CHrec2) #
+CHrecmod.sil  <- rma(LnRR, varLnRR, mods = silbot , data = CHrec2)
+
+## Log transforming
+## Not useful for NPP, only for Phosphorus.
+CHrecmod.NPPlog  <- rma(LnRR, varLnRR, mods = log(nppsurf), data = CHrec2) #
+CHrecmod.phoslog <- rma(LnRR, varLnRR, mods = log(phosbot), data = CHrec2)
+CHrecmod.sillog  <- rma(LnRR, varLnRR, mods = log(silbot) , data = CHrec2) #
+
+```
+
+### Forest plots (Chl-a Comprehensive)
+
+```{r, fig.height = 8, fig.width = 6, warning=FALSE}
+setwd("~/GitHub/Metastudy/Figures")
+
+pdf("rforestplot_Chla_comp.pdf", width = 6, height = 8)
+# Assign 0 to varLnRR where NaN.
+CH3 <- CHrec2
+CH3$varLnRR[is.nan(CH2$varLnRR)] <- 0
+
+forest(CH3$LnRR, CH3$varLnRR, slab = CH3$artname, ylim = c(-4.5, 69), xlim = c(-7, 3.5))
+text(-2.7, 68, "Log response ratio", pos = 4, font = 2)
+text(-7, 68, "Study", pos = 4, font = 3)
+text(3.5, 68, "LnRR [95% CI]", pos = 2, font = 3)
+
+preds <- predict(CHmod.NPPlog, newmods = c(-5.8, -2.996, -2.303))
+addpoly(preds$pred, sei = preds$se,
+mlab = c("0.003 NPP", "0.05 NPP", "0.1 NPP"))
+abline(h = 0)
+
+dev.off()
+
+```

@@ -1,0 +1,138 @@
+---
+title: "Effect size calculation for meta-analysis"
+author: "Justin Tiano"
+date: "01/08/2022"
+output: html_document
+---
+
+# Introduction 
+
+This script organizes the meta-analysis data to calculate 3 types of treatment effect sizes:
+  1. Log response ratios (lnRR),
+  2. Standardized mean difference (Cohen's d), and 
+  3. Standardized mean difference (Hedges g). 
+The resulting dataframe is saved as "Exp-Obs.rda".
+
+```{r loading required packages, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(effsize, metafor)
+```
+
+Read data
+```{r}
+
+df <- read.csv("../dataset/metadata.csv")
+
+# corrections
+df$Study.type[df$article_id==12]="Before After"  
+df$Study.type[df$article_id==23]="Before After"
+df$Study.type[df$article_id==164]="Before After"
+df$Study.type[df$article_id==132]="Before After"
+df$Study.type[149:150] = "Control Impact"        # Change study type for 2 parameters in article 66
+df = df[-c(197,226), ]
+
+# Make new columns for effect size calculations
+df$response1=NA
+df$SD1=NA
+df$n1=NA
+df$response2=NA
+df$SD2=NA
+df$n2=NA
+
+```
+
+Organize columns to calculate lnRR
+```{r}
+### Before After studies ###
+df$response1[df$Study.type=="Before After"]=df$Mean_Before_impact[df$Study.type=="Before After"]
+df$SD1[df$Study.type=="Before After"]=df$SD_Before_impact[df$Study.type=="Before After"]
+df$n1[df$Study.type=="Before After"]=df$n_Before_impact[df$Study.type=="Before After"]
+
+df$response2[df$Study.type=="Before After"]=df$Mean_After_impact[df$Study.type=="Before After"]
+df$SD2[df$Study.type=="Before After"]=df$SD_After_impact[df$Study.type=="Before After"]
+df$n2[df$Study.type=="Before After"]=df$n_After_impact[df$Study.type=="Before After"]
+
+### Control Impact studies ###
+df$response1[df$Study.type=="Control Impact"]=df$Mean_After_control[df$Study.type=="Control Impact"]
+df$SD1[df$Study.type=="Control Impact"]=df$SD_After_control[df$Study.type=="Control Impact"]
+df$n1[df$Study.type=="Control Impact"]=df$n_After_control[df$Study.type=="Control Impact"]
+
+df$response2[df$Study.type=="Control Impact"]=df$Mean_After_impact[df$Study.type=="Control Impact"]
+df$SD2[df$Study.type=="Control Impact"]=df$SD_After_impact[df$Study.type=="Control Impact"]
+df$n2[df$Study.type=="Control Impact"]=df$n_After_impact[df$Study.type=="Control Impact"]
+
+#### Before After Control Impact studies ###
+df$AftCtrl_BefCtrl=df$Mean_After_control/df$Mean_Before_control
+df$AftImpt_BefImpt=df$Mean_After_impact/df$Mean_Before_impact
+df$SD1[df$Study.type=="Before After Control Impact"]=df$SD_After_control[df$Study.type=="Before After Control Impact"]
+df$SD2[df$Study.type=="Before After Control Impact"]=df$SD_After_impact[df$Study.type=="Before After Control Impact"]
+df$response1[df$Study.type=="Before After Control Impact"]=df$AftCtrl_BefCtrl[df$Study.type=="Before After Control Impact"]
+df$response2[df$Study.type=="Before After Control Impact"]=df$AftImpt_BefImpt[df$Study.type=="Before After Control Impact"]
+df$n1[df$Study.type=="Before After Control Impact"]=(df$n_After_control[df$Study.type=="Before After Control Impact"] 
+                                                           + df$n_Before_control[df$Study.type=="Before After Control Impact"])/2
+df$n2[df$Study.type=="Before After Control Impact"]=(df$n_After_impact[df$Study.type=="Before After Control Impact"] 
+                                                           + df$n_Before_impact[df$Study.type=="Before After Control Impact"])/2
+# Make all SD's positive
+df$SD1 = abs(df$SD1)
+df$SD2 = abs(df$SD2)
+```
+
+Calculate lnRR and VlnRR
+```{r, warning=FALSE}
+# Calculate lnRR
+df$lnRR=log(df$response2/df$response1)
+
+df$lnRR[df$lnRR==Inf]=NA   # anything #NAME?, Inf, and NA it replaces with NA; get rid of responses where either C or I is 0
+df$lnRR[df$lnRR==-Inf]=NA  # get rid of responses where either C or I is 0
+
+df$lnRR[df$lnRR==Inf]=NA   # get rid of responses where either C or I is 0
+df$lnRR[df$lnRR==-Inf]=NA  # get rid of responses where either C or I is 0
+
+# Pooled standard deviation
+df$SD1 = as.numeric(df$SD1) # need to convert this column to numeric
+df$Spooled=sqrt(((df$n1-1)*(df$SD1^2)+ (df$n2-1)*(df$SD2^2))   / # Pooled within groups SD (S within or S pooled)
+              (df$n1+df$n2-2))
+
+# VlnRR
+df$VarLnRR=df$Spooled^2*( 1/(df$n1*df$response1^2) +1/(df$n2*df$response2^2))
+
+## Before After Control Impact VarlnRR
+df$VarLnRR[df$Study.type=="Before After Control Impact"]=
+df$SD_After_control[df$Study.type=="Before After Control Impact"]^2/(df$n_After_control[df$Study.type=="Before After Control Impact"]*df$Mean_After_control[df$Study.type=="Before After Control Impact"]^2)+
+df$SD_Before_control[df$Study.type=="Before After Control Impact"]^2/(df$n_Before_control[df$Study.type=="Before After Control Impact"]*df$Mean_Before_control[df$Study.type=="Before After Control Impact"]^2)+
+df$SD_After_impact[df$Study.type=="Before After Control Impact"]^2/(df$n_After_impact[df$Study.type=="Before After Control Impact"]*df$Mean_After_impact[df$Study.type=="Before After Control Impact"]^2)+
+df$SD_Before_impact[df$Study.type=="Before After Control Impact"]^2/(df$n_Before_impact[df$Study.type=="Before After Control Impact"]*df$Mean_Before_impact[df$Study.type=="Before After Control Impact"]^2)
+df$SE=sqrt(df$VarLnRR)
+
+# Weight (W) for lnRR effect size
+df$W = 1/df$VarLnRR
+df$W[df$W==Inf]=NA  
+df$WY = df$W*df$lnRR        # Effect size multiplied by weight
+df$WY2 = df$W*df$lnRR^2     # W * Y^2
+df$WYsquared = df$WY^2
+
+# Cohen's d calculations (Standardized mean difference)
+# variance calculated with escalc
+df <- escalc(measure="SMD", m1i=response2, m2i=response1, sd1i=SD2, sd2i=SD1, n1i=n2, n2i=n1, data=df, var.names=c("d","Vd"), digits=4) 
+df$SEd = sqrt(df$Vd)
+df$Wd = 1/df$Vd             # Weight for Cohen's d fixed effects
+df$Wd[df$Wd==Inf]=NA  
+df$WYd = df$Wd*df$d         # Cohen's d multiplied by weight
+df$WYd2 = df$Wd * df$d ^ 2  # W * Y^2
+df$WYdsquared = df$WYd^2
+
+#Convert to hedges g
+df$g = df$d * (1 - (3 / 4 * (df$n1 + df$n2 - 2) - 1))
+df$Vg = 1 - (3 / 4 * (df$n1 + df$n2 - 2) - 1) * df$Vd
+df$SEg = sqrt(df$Vg)
+df$Wg = 1/df$Vg             # Weight for Hedges g fixed effects
+df$Wg[df$Wg==Inf]=NA  
+df$WYg = df$Wg*df$g         # Hedges g multiplied by weight
+df$WYg2 = df$Wg * df$g ^ 2  # W * Y^2
+df$WYgsquared = df$WYg^2
+
+# save stuff 
+save(file = "../r_objects/Exp-Obs.rda", df)
+```
+

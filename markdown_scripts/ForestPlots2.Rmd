@@ -1,0 +1,224 @@
+---
+title: "Forest Plots2"
+author: "Justin Tiano"
+date: '2022-08-25'
+output: html_document
+---
+
+# Intro
+
+# Startup
+
+### Load packages
+
+```{r setup, include=FALSE}
+
+require(metafor)
+source("http://highstat.com/Books/BGS/GAMM/RCodeP2/HighstatLibV6.R")
+```
+
+### Load data
+
+```{r}
+load("../r_objects/meta.dat3.rda")
+authors = read.csv("../dataset/authors.csv")
+names(authors)[2] = "artname"
+```
+
+Put data in correct format
+```{r}
+# select columns (easier to work with)
+OC = OC[,-c(7:11,13:18,20,25,29,33:49)]
+OCrec = OCrec[,-c(7:11,13:18,20,25,29,33:49)]
+OCUN = OCUN[,-c(7:11,13:18,20,25,29,33:49)]
+CH = CH[,-c(7:11,13:18,20,25,29,33:49)]
+CHrec = CHrec[,-c(7:11,13:18,20,25,29,33:49)]
+CHUN = CHUN[,-c(7:11,13:18,20,25,29,33:49)]
+
+# Add author names
+OC = merge(OC,authors, by = "article_id")
+OCrec = merge(OCrec,authors, by = "article_id")
+OCUN = merge(OCUN,authors, by = "article_id")
+CH = merge(CH,authors, by = "article_id")
+CHrec = merge(CHrec,authors, by = "article_id")
+CHUN = merge(CHUN,authors, by = "article_id")
+
+# Adapt for Emil's code
+OC2 = OC
+OCrec2 = OCrec
+CH2 = CH
+CHrec2 = CHrec
+```
+
+# Forest Plots
+
+## OC immediate impact
+
+```{r, fig.height = 7, fig.width = 6, warning=FALSE}
+# data needed
+OCmod.cvellog  <- rma(lnRR, VarLnRR, mods = log(cvel), data = OC2)
+
+setwd("~/GitHub/Metastudy/Figures/Supplementary")
+
+# Assign 0 to VarLnRR where NaN.
+pdf("rforestplot_OC.pdf", width = 6.69, height = 10)
+
+dat <- OC2
+dat$VarLnRR[is.nan(dat$VarLnRR)] <- 0
+
+# to get weights used in analysis
+ll = rma.uni(yi = dat$lnRR, vi = dat$VarLnRR)
+T2 = ll$tau2
+dat$WRandom = 1/(dat$W + T2) # Weight = 1/variance within + variance between studies for random effects model
+
+forest(dat$lnRR, dat$VarLnRR, ylim = c(-4.5, 50), slab = dat$artname,)
+  text(-0.9, 50.5, "Log response ratio", pos = 4, font = 2)
+  text(-3.5, 49, "Study", pos = 4, font = 3)
+  text(3.3, 49, "LnRR [95% CI]", pos = 2, font = 3)
+
+preds <- predict(OCmod.cvellog, newmods = c(-4.605, -2.996, -2.303, -1.386))
+addpoly(preds$pred, sei = preds$se,
+mlab = c("0.01 m/s", "0.05 m/s", "0.1 m/s", "0.2 m/s"))
+abline(h = 0)
+
+dev.off()
+
+```
+
+## OC trawling + recovery
+
+```{r, fig.height = 8, fig.width = 6, warning=FALSE}
+# data needed
+OCrecmod.cvellog  <- rma(lnRR, VarLnRR, mods = log(cvel), data = OCrec2)
+
+setwd("~/GitHub/Metastudy/Figures/Supplementary")
+
+# Assign 0 to VarLnRR where NaN.
+pdf("rforestplot_OCrec.pdf", width = 6.69, height = 10)
+
+OCrec3 <- OCrec2
+OCrec3$VarLnRR[is.nan(OCrec2$VarLnRR)] <- 0
+
+OCrec3 = OCrec3[-10,]
+
+forest(OCrec3$lnRR, OCrec3$VarLnRR, slab = OCrec3$artname, ylim = c(-4, 67), xlim = c(-4, 3))
+text(-1, 66.5, "Log response ratio", pos = 4, font = 2)
+text(-4, 66, "Study", pos = 4, font = 3)
+text(3, 66, "lnRR [95% CI]", pos = 2, font = 3)
+
+preds <- predict(OCrecmod.cvellog, newmods = c(-4.605, -2.996, -2.303, -1.386))
+addpoly(preds$pred, sei = preds$se,
+mlab = c("0.01 m/s", "0.05 m/s", "0.1 m/s", "0.2 m/s"))
+abline(h = 0)
+
+dev.off()
+```
+
+## OC unknown time since trawled
+
+```{r, fig.height = 5, fig.width = 6, warning=FALSE}
+# data needed
+OCUNmod.cvellog  <- rma(lnRR, VarLnRR, mods = log(cvel), data = OCUN)
+
+setwd("~/GitHub/Metastudy/Figures/Supplementary")
+
+# Assign 0 to VarLnRR where NaN.
+pdf("rforestplot_OCunknown.pdf", width = 6.69, height = 6.69)
+
+OC3 <- OCUN
+OC3$VarLnRR[is.nan(OCUN$VarLnRR)] <- 0
+
+forest(OC3$lnRR, OC3$VarLnRR, ylim = c(-4.5, 25), slab = OC3$artname)
+text(-0.7, 24.5, "Log response ratio", pos = 4, font = 2)
+text(-3.7, 24, "Study", pos = 4, font = 3)
+text(3.7, 24, "LnRR [95% CI]", pos = 2, font = 3)
+
+preds <- predict(OCUNmod.cvellog, newmods = c(-4.605, -2.996, -2.303, -1.386))
+addpoly(preds$pred, sei = preds$se,
+mlab = c("0.01 m/s", "0.05 m/s", "0.1 m/s", "0.2 m/s"))
+abline(h = 0)
+
+dev.off()
+
+```
+
+## Chl-a immediate impact
+
+```{r, fig.height = 8, fig.width = 6, warning=FALSE}
+
+CHmod.NPPlog  <- rma(lnRR, VarLnRR, mods = log(nppsurf), data = CH2)
+
+setwd("~/GitHub/Metastudy/Figures/Supplementary")
+
+pdf("rforestplot_chla.pdf", width = 6.69, height = 10)
+# Assign 0 to VarLnRR where NaN.
+CH3 <- CH2
+CH3$VarLnRR[is.nan(CH2$VarLnRR)] <- 0
+
+forest(CH3$lnRR, CH3$VarLnRR, slab = CH3$artname, ylim = c(-4.5, 70), xlim = c(-7, 3.5))
+text(-3, 70.5, "Log response ratio", pos = 4, font = 2)
+text(-7, 69, "Study", pos = 4, font = 3)
+text(3.5, 69, "lnRR [95% CI]", pos = 2, font = 3)
+
+preds <- predict(CHmod.NPPlog, newmods = c(-5.8, -2.996, -2.303))
+addpoly(preds$pred, sei = preds$se,
+mlab = c("0.003 NPP", "0.05 NPP", "0.1 NPP"))
+abline(h = 0)
+
+dev.off()
+
+```
+
+## Chl-a trawling + recovery 
+
+```{r, fig.height = 10, fig.width = 7, warning=FALSE}
+
+CHrecmod.NPPlog  <- rma(lnRR, VarLnRR, mods = log(nppsurf), data = CHrec2) #
+
+setwd("~/GitHub/Metastudy/Figures/Supplementary")
+
+pdf("rforestplot_Chla_rec.pdf", width = 6.69, height = 10)
+# Assign 0 to VarLnRR where NaN.
+CH3 <- CHrec2
+CH3$VarLnRR[is.nan(CH2$VarLnRR)] <- 0
+
+forest(CH3$lnRR, CH3$VarLnRR, slab = CH3$artname, ylim = c(-4.5, 97), xlim = c(-7, 3.5))
+text(-2.7, 97, "Log response ratio", pos = 4, font = 2)
+text(-7, 96, "Study", pos = 4, font = 3)
+text(4, 96, "lnRR [95% CI]", pos = 2, font = 3)
+
+preds <- predict(CHrecmod.NPPlog, newmods = c(-5.8, -2.996, -2.303))
+addpoly(preds$pred, sei = preds$se,
+mlab = c("0.003 NPP", "0.05 NPP", "0.1 NPP"))
+abline(h = 0)
+
+dev.off()
+
+```
+
+## Chl-a Unknown time since trawled
+
+```{r, fig.height = 2, fig.width = 6, warning=FALSE}
+
+CHUNmod.NPPlog  <- rma(lnRR, VarLnRR, mods = log(nppsurf), data = CHUN) #
+
+setwd("~/GitHub/Metastudy/Figures/Supplementary")
+
+pdf("rforestplot_Chla_unknown.pdf", width = 6.69, height = 2.5)
+# Assign 0 to VarLnRR where NaN.
+CH3 <- CHUN
+#CH3$VarLnRR[is.nan(CH2$VarLnRR)] <- 0
+
+forest(CH3$lnRR, CH3$VarLnRR, slab = CH3$artname, ylim = c(-0, 4), xlim = c(-7, 3.5))
+text(-2.7, 3, "Log response ratio", pos = 4, font = 2)
+text(-7, 2.5, "Study", pos = 4, font = 3)
+text(3.5, 2.5, "lnRR [95% CI]", pos = 2, font = 3)
+
+#preds <- predict(CHUNmod.NPPlog, newmods = c(-5.8, -2.996, -2.303))
+#addpoly(preds$pred, sei = preds$se,
+#mlab = c("0.003 NPP", "0.05 NPP", "0.1 NPP"))
+abline(h = 0)
+
+dev.off()
+
+```

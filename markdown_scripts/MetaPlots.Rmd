@@ -1,0 +1,520 @@
+---
+title: "Code for Meta-analysis plots"
+author: "Justin Tiano"
+date: "01/08/2022"
+output: html_document
+---
+
+# Introduction
+
+This script is used to make plots from the biogeochemical meta-analysis. 
+It is used in combination with the plotting functions found in 'Plot.functions.R' 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load data
+```{r}
+
+source("../source_code/Plot.functions.R")
+load("../r_objects/Grad.rda")
+GradInfo = df
+load("../r_objects/meta.dat3.rda")
+
+# subsetting
+Ex = subset(df1, stype=="Experimental")
+Ob = subset(df1, stype=="Observational")
+
+```
+
+# Summary Plots
+
+## Summary EF
+* Only immediate effects
+```{r, fig.width =5, fig.height = 6, warning=FALSE}
+setwd("~/GitHub/Metastudy/Figures")
+
+pdf("Summary EF.pdf", width = 6.69, height = 6.69)
+tpos = -12
+tpos2 = 11
+PlotSum("TOC", yhigh = 16, start = T, textpos = tpos, xlow = -18, xhigh = 14, row = 16, textpos2 = tpos2)
+PlotSum("Chl-a", row = 15, textpos = tpos, textpos2 = tpos2)  
+PlotSum("Phytopigments", row = 14, textpos = tpos, textpos2 = tpos2)
+PlotSum("Phaeopigments", row = 13, textpos = tpos, textpos2 = tpos2)
+PlotSum("OM (LOI)", row = 12, textpos = tpos, textpos2 = tpos2)  
+PlotSum("TN", row = 11, textpos = tpos, textpos2 = tpos2)  
+PlotSum("TOC/TN", row = 10, textpos = tpos, textpos2 = tpos2)  
+PlotSum("Carbohydrates", row = 9, textpos = tpos, textpos2 = tpos2)  
+PlotSum("Lipids", row = 8, textpos = tpos, textpos2 = tpos2)  
+PlotSum("Proteins", row = 7, textpos = tpos, textpos2 = tpos2)  
+PlotSum("Biopolymeric C (BPC)", row = 6, textpos = tpos, textpos2 = tpos2)  
+PlotSum("Algal fraction of BPC", row = 5, textpos = tpos, textpos2 = tpos2)  
+PlotSum("oxygen consumption", row = 4, textpos = tpos, textpos2 = tpos2)  
+PlotSum("NHx flux", row = 3, textpos = tpos, textpos2 = tpos2)  
+PlotSum("Nitrate flux", row = 2, textpos = tpos, textpos2 = tpos2)  
+PlotSum("Phosphate flux", row = 1, textpos = tpos, textpos2 = tpos2)
+dev.off()
+```
+
+## Standardized mean difference (Cohn's d) comparison
+* Only immediate effects
+```{r, fig.width =7, fig.height = 4, warning = F}
+setwd("~/GitHub/Metastudy/Figures")
+
+pdf("Comparison.pdf", width = 6.69, height = 4.5)
+tpos = -17
+tpos2 = 15
+GrPlot("TOC", yhigh = 4.5, textpos = tpos, xlow = -26, xhigh = 20, start = T, row = 4, textpos2 = tpos2)
+GrPlot("Chl-a", textpos = tpos, start = F, row  = 3, textpos2 = tpos2)
+GrPlot("OM (LOI)", textpos = tpos, start = F, row  = 2, textpos2 = tpos2)
+GrPlot("TN", textpos = tpos, start = F, row  = 1, textpos2 = tpos2)
+textpos = -23
+PlotD("TOC", row = 4, start = F, textpos = textpos, textpos2 = tpos2)  
+PlotD("Chl-a", row = 3, start = F, textpos = textpos, textpos2 = tpos2)  
+PlotD("OM (LOI)", row = 2, start = F, textpos = textpos, textpos2 = tpos2)  
+PlotD("TN", row = 1, start = F, textpos = textpos, textpos2 = tpos2)  
+legend("bottomleft", pch = 15, col = c("black", adjustcolor("red", 0.5)), lty = 1,  c("Comparative studies", "Gradient Studies"), 
+       bty = "n", cex = 0.8)
+dev.off()
+```
+
+# Individual variables
+
+*Immediate trawling effect
+
+Models for nominal variables (subgroup analysis)
+- removing intercept for visualization in graphs (all levels seen)
+
+```{r, warning = F}
+dat = OC
+OCdep <- rma.uni(data=dat, yi=lnRR, vi=VarLnRR, method="DL", mods=~(slicedepth-1), weighted=TRUE)# 
+OCsed <- rma.uni(data=dat, yi=lnRR, vi=VarLnRR, method="DL", mods=~(hhabtype-1), weighted=TRUE)# 
+OCsea <- rma.uni(data=dat, yi=lnRR, vi=VarLnRR, method="DL", mods=~(hseason-1), weighted=TRUE) # 
+dat = CH
+CHdep <- rma.uni(data=dat, yi=lnRR, vi=VarLnRR, method="DL", mods=~(slicedepth-1), weighted=TRUE)# 
+CHsed <- rma.uni(data=dat, yi=lnRR, vi=VarLnRR, method="DL", mods=~(hhabtype-1), weighted=TRUE)#    
+CHsea <- rma.uni(data=dat, yi=lnRR, vi=VarLnRR, method="DL", mods=~(hseason-1), weighted=TRUE) # 
+```
+
+## Subgroup Plots with categorical variables
+
+```{r, fig.width =7, fig.height = 5}
+setwd("~/GitHub/Metastudy/Figures")
+
+pdf("Subgroups.pdf", width = 6.69, height = 4.5)
+
+par(mfrow = c(2,3), mar = c(4, 6, 2, 2))
+pch = 15
+cex = 1
+length = 0.03
+
+#OC sediment depth
+plot(x = OCdep$b[c(3:1)], y = 1:3, xlim = c(-1.2, 0.5), ylim = c(0, 3.5), xlab = "ln(RR)", ylab = "", yaxt = "n", pch = pch, cex = cex,
+     main = "OC sample depth")
+arrows(x0 = OCdep$ci.lb[1], x1 = OCdep$ci.ub[1], y0 = 3, length = length, angle = -90, code = 3)
+arrows(x0 = OCdep$ci.lb[2], x1 = OCdep$ci.ub[2], y0 = 2, length = length, angle = -90, code = 3)
+arrows(x0 = OCdep$ci.lb[3], x1 = OCdep$ci.ub[3], y0 = 1, length = length, angle = -90, code = 3)
+abline(v = 0, lty = 1, col = adjustcolor("grey40", 0.5), lwd = 2)
+axis(2, at = c(1:3), c("0-5+ cm", "0-2.5 cm", "0-1 cm"), las = 1)
+text(-1.1,3, "[35]")
+text(-1.1,2, "[6]")
+text(-1.1,1, "[7]")
+#OC habitat type
+plot(x = OCsed$b[c(2,1)], y = 1:2, xlim = c(-1.1, 0.1), ylim = c(0, 3), xlab = "ln(RR)", ylab = "", yaxt = "n", pch = pch, cex = cex,
+     main = "OC habitat type")
+arrows(x0 = OCsed$ci.lb[1], x1 = OCsed$ci.ub[1], y0 = 2, length = length, angle = -90, code = 3)
+arrows(x0 = OCsed$ci.lb[2], x1 = OCsed$ci.ub[2], y0 = 1, length = length, angle = -90, code = 3)
+abline(v = 0, lty = 1, col = adjustcolor("grey40", 0.5), lwd = 2)
+axis(2, at = c(1,2), c("sand", "mud"), las = 1)
+text(-1,2, "[33]")
+text(-1,1, "[15]")
+#OC season
+plot(x = OCsea$b[c(4,2,3,1)], y = c(4,3,2,1), xlim = c(-1.75, 0.25), ylim = c(0, 4.5), xlab = "ln(RR)", ylab = "", yaxt = "n", pch = pch, cex = cex,
+     main = "OC season")
+arrows(x0 = OCsea$ci.lb[4], x1 = OCsea$ci.ub[4], y0 = 4, length = length, angle = -90, code = 3)
+arrows(x0 = OCsea$ci.lb[2], x1 = OCsea$ci.ub[2], y0 = 3, length = length, angle = -90, code = 3)
+arrows(x0 = OCsea$ci.lb[3], x1 = OCsea$ci.ub[3], y0 = 2, length = length, angle = -90, code = 3)
+arrows(x0 = OCsea$ci.lb[1], x1 = OCsea$ci.ub[1], y0 = 1, length = length, angle = -90, code = 3)
+abline(v = 0, lty = 1, col = adjustcolor("grey40", 0.5), lwd = 2)
+axis(2, at = c(4:1), c("winter", "spring", "summer", "autumn"), las = 1)
+text(-1.6,4, "[13]")
+text(-1.6,3, "[5]")
+text(-1.6,2, "[16]")
+text(-1.6,1, "[14]")
+
+#CH sediment depth
+plot(x = CHdep$b[c(1:3)], y = 3:1, xlim = c(-1.2, 0.5), ylim = c(0.5, 3.5), xlab = "ln(RR)", ylab = "", yaxt = "n", pch = pch, cex = cex,
+     main = "Chl-a sample depth")
+arrows(x0 = CHdep$ci.lb[1], x1 = CHdep$ci.ub[1], y0 = 3, length = length, angle = -90, code = 3)
+arrows(x0 = CHdep$ci.lb[2], x1 = CHdep$ci.ub[2], y0 = 2, length = length, angle = -90, code = 3)
+arrows(x0 = CHdep$ci.lb[3], x1 = CHdep$ci.ub[3], y0 = 1, length = length, angle = -90, code = 3)
+abline(v = 0, lty = 1, col = adjustcolor("grey40", 0.5), lwd = 2)
+axis(2, at = c(1:3), c("0-5+ cm", "0-2.5 cm", "0-1 cm"), las = 1)
+text(-1.1,3, "[31]")
+text(-1.1,2, "[33]")
+text(-1.1,1, "[3]")
+
+#CH habitat type
+plot(x = CHsed$b[c(2,1)], y = 1:2, xlim = c(-1.1, 0.1), ylim = c(0, 3), xlab = "ln(RR)", ylab = "", yaxt = "n", pch = pch, cex = cex,
+     main = "Chl-a habitat type")
+arrows(x0 = CHsed$ci.lb[1], x1 = CHsed$ci.ub[1], y0 = 2, length = length, angle = -90, code = 3)
+arrows(x0 = CHsed$ci.lb[2], x1 = CHsed$ci.ub[2], y0 = 1, length = length, angle = -90, code = 3)
+abline(v = 0, lty = 1, col = adjustcolor("grey40", 0.5), lwd = 2)
+axis(2, at = c(1,2), c("sand", "mud"), las = 1)
+text(-1,2, "[27]")
+text(-1,1, "[40]")
+#CH season
+plot(x = CHsea$b[c(4,2,3,1)], y = c(4,3,2,1), xlim = c(-1.75, 0.25), ylim = c(0, 4.5), xlab = "ln(RR)", ylab = "", yaxt = "n", pch = pch, cex = cex,
+     main = "Chl-a season")
+arrows(x0 = CHsea$ci.lb[4], x1 = CHsea$ci.ub[4], y0 = 4, length = length, angle = -90, code = 3)
+arrows(x0 = CHsea$ci.lb[2], x1 = CHsea$ci.ub[2], y0 = 3, length = length, angle = -90, code = 3)
+arrows(x0 = CHsea$ci.lb[3], x1 = CHsea$ci.ub[3], y0 = 2, length = length, angle = -90, code = 3)
+arrows(x0 = CHsea$ci.lb[1], x1 = CHsea$ci.ub[1], y0 = 1, length = length, angle = -90, code = 3)
+abline(v = 0, lty = 1, col = adjustcolor("grey40", 0.5), lwd = 2)
+axis(2, at = c(4:1), c("winter", "spring", "summer", "autumn"), las = 1)
+text(-1.6,4, "[11]")
+text(-1.6,3, "[3]")
+text(-1.6,2, "[42]")
+text(-1.6,1, "[11]")
+
+dev.off()
+```
+
+## Meta-regressions with continuous variables to display in paper
+ - TOC vs ln(Current speed);          ***, R2 = 36.87% (immediate impact)
+ - Chl-a vs ln(Current speed);        ***, R2 = 22.90% (immediate impact)
+ - TOC vs ln(days since trawling);     NS, R2 = 0%     (trawling + recovery)
+ - Chl-a vs ln(days since trawling);   **, R2 = 0%     (trawling + recovery)
+
+```{r, fig.width =6.69, fig.height = 6.69, warning = F}
+OCvel <- rma.uni(data=OC, yi=lnRR, vi=VarLnRR, method="DL", mods=~log(cvel), weighted=TRUE)
+CHvel <- rma.uni(data=CH, yi=lnRR, vi=VarLnRR, method="DL", mods=~log(cvel), weighted=TRUE) 
+OCtimetrawl <- rma.uni(data=OCrec, yi=lnRR, vi=VarLnRR, method="DL", mods=~log(timetrawldays+1), weighted=TRUE) 
+CHtimetrawl <- rma.uni(data=CHrec, yi=lnRR, vi=VarLnRR, method="DL", mods=~log(timetrawldays+1), weighted=TRUE) 
+
+setwd("~/GitHub/Metastudy/Figures")
+pdf("Meta-regressions.pdf", width = 6.69, height = 6.69)
+
+par(mfrow = c(2,2), mar = c(4,4,1.5,1))
+Col = adjustcolor("darkgreen", 0.5)
+Col2 = adjustcolor("darkgreen", 0.5)
+regplot(OCvel, bg = Col, col = Col2, shade = adjustcolor("black", 0.3), grid = T, refline = 0, ylab = "ln(RR)", xlab = "ln(current velocity[m s-1])", main = "OC effect size vs Current speed", las = 1, lcol = c("white","grey25","grey1","grey50"), lty = c(1,0,1,1), lwd = c(2,1,1,2), cex.axis = 0.6, cex.lab = 0.75, cex.main = 0.8)
+regplot(CHvel, bg = Col, col = Col2, shade = adjustcolor("black", 0.3), grid = T, refline = 0, ylab = "ln(RR)", xlab = "ln(current velocity[m s-1])", main = "Chl-a effect size vs Current speed", las = 1, lcol = c("grey90","grey25","grey1","grey50"), lty = c(1,0,1,1), lwd = c(2,1,1,2), cex.axis = 0.6, cex.lab = 0.75, cex.main = 0.8)
+regplot(OCtimetrawl, bg = Col, col = Col2, shade = adjustcolor("black", 0.3), grid = T, refline = 0, ylab = "ln(RR)", xlab = "ln(days since trawling + 1)", main = "OC effect size vs days since trawling", las = 1, lcol = c("white","grey25","grey1","grey50"), lty = c(1,0,1,1), lwd = c(2,1,1,2), cex.axis = 0.6, cex.lab = 0.75, cex.main = 0.8)
+regplot(CHtimetrawl, bg = Col, col = Col2, shade = adjustcolor("black", 0.3), grid = T, refline = 0, ylab = "ln(RR)", xlab = "ln(days since trawling + 1)", main = "Chl-a size vs days since trawling", las = 1, lcol = c("grey90","grey25","grey1","grey50"), lty = c(1,0,1,1), lwd = c(2,1,1,2), cex.axis = 0.6, cex.lab = 0.75, cex.main = 0.8)
+
+dev.off()
+```
+
+# Supplementary 
+
+## Experimental vs observational studies
+* Only immediate effects
+```{r, fig.width =6, fig.height = 8, warning=FALSE}
+setwd("~/GitHub/Metastudy/Figures/Supplement")
+
+pdf("E vs O studies.pdf", width = 6.69, height = 8.5)
+tpos = -13
+mv = 0.15
+PlotEO(data = Ex, parm="TOC", yhigh = 17, textpos = tpos, xlow = -16, xhigh = 12, row = 17, mv = mv)
+PlotEO(data = Ex, parm="Chl-a", row = 16, start = F, textpos = tpos, mv = mv)  
+PlotEO(data = Ex, parm="Phytopigments", row = 15, start = F, textpos = tpos, mv = mv)
+PlotEO(data = Ex, parm="Phaeopigments", row = 14, start = F, textpos = tpos, mv = mv)
+PlotEO(data = Ex, parm="OM (LOI)", row = 13, start = F, textpos = tpos, mv = mv)  
+PlotEO(data = Ex, parm="TN", row = 12, start = F, textpos = tpos, mv = mv)  
+PlotEO(data = Ex, parm="TOC/TN", row = 11, start = F, textpos = tpos, mv = mv)  
+PlotEO(data = Ex, parm="Carbohydrates", row = 10, start = F, textpos = tpos, mv = mv)  
+PlotEO(data = Ex, parm="Lipids", row = 9, start = F, textpos = tpos, mv = mv)  
+PlotEO(data = Ex, parm="Proteins", row = 8, start = F, textpos = tpos, mv = mv)  
+PlotEO(data = Ex, parm="Biopolymeric C (BPC)", row = 7, start = F, textpos = tpos, mv = mv)  
+PlotEO(data = Ex, parm="Algal fraction of BPC", row = 6, start = F, textpos = tpos, mv = mv)  
+PlotEO(data = Ex, parm="oxygen consumption", row = 5, start = F, textpos = tpos, mv = mv)  
+PlotEO(data = Ex, parm="NHx flux", row = 4, start = F, textpos = tpos, mv = mv)  
+PlotEO(data = Ex, parm="Nitrate flux", row = 3, start = F, textpos = tpos, mv = mv)  
+PlotEO(data = Ex, parm="Phosphate flux", row = 2, start = F, textpos = tpos, mv = mv)
+PlotEO(data = Ex, parm="Mean grain size", row = 1, start = F, textpos = tpos, mv = mv)
+
+Col = adjustcolor("red", 0.7)
+mv = -0.15
+tpos = -8
+PlotEO(data = Ob, parm="TOC", yhigh = 17, start = F, textpos = tpos, row = 17, mv = mv, lab = F, Col = Col)
+PlotEO(data = Ob, parm="Chl-a", row = 16, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="Phytopigments", row = 15, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)
+PlotEO(data = Ob, parm="Phaeopigments", row = 14, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)
+PlotEO(data = Ob, parm="OM (LOI)", row = 13, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="TN", row = 12, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="TOC/TN", row = 11, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="Carbohydrates", row = 10, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="Lipids", row = 9, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="Proteins", row = 8, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="Biopolymeric C (BPC)", row = 7, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="Algal fraction of BPC", row = 6, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="oxygen consumption", row = 5, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="NHx flux", row = 4, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="Nitrate flux", row = 3, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="Phosphate flux", row = 2, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)
+PlotEO(data = Ob, parm="Mean grain size", row = 1, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)
+
+legend("bottomleft", pch = 15, col = c("black", adjustcolor("red", 0.5)), lty = 1,  c("Experimental studies", "Observational Studies"), bty = "n", cex = 0.75)
+
+dev.off()
+```
+
+## Models for nominal variables (subgroup analysis)
+- removing intercept for visualization in graphs (all levels seen)
+
+ * Comprehensive dataset
+```{r, warning = F}
+dat = OCAll
+OCdep <- rma.uni(data=dat, yi=lnRR, vi=VarLnRR, method="DL", mods=~(slicedepth-1), weighted=TRUE)# 
+OCsed <- rma.uni(data=dat, yi=lnRR, vi=VarLnRR, method="DL", mods=~(hhabtype-1), weighted=TRUE)# 
+OCsea <- rma.uni(data=dat, yi=lnRR, vi=VarLnRR, method="DL", mods=~(hseason-1), weighted=TRUE) # 
+dat = CHAll
+CHdep <- rma.uni(data=dat, yi=lnRR, vi=VarLnRR, method="DL", mods=~(slicedepth-1), weighted=TRUE)# 
+CHsed <- rma.uni(data=dat, yi=lnRR, vi=VarLnRR, method="DL", mods=~(hhabtype-1), weighted=TRUE)#    
+CHsea <- rma.uni(data=dat, yi=lnRR, vi=VarLnRR, method="DL", mods=~(hseason-1), weighted=TRUE) # 
+```
+
+Subgroup Plots with categorical variables
+ * Comprehensive dataset
+```{r, warning=F}
+setwd("~/GitHub/Metastudy/Figures/Supplementary")
+
+pdf("SubgroupsAll.pdf", width = 6.69, height = 4.5)
+par(mfrow = c(2,3), mar = c(4, 6, 2, 2))
+pch = 15
+cex = 1
+length = 0.03
+
+#OC sediment depth
+plot(x = OCdep$b[c(3:1)], y = 1:3, xlim = c(-1.2, 0.5), ylim = c(0, 3.5), xlab = "ln(RR)", ylab = "", yaxt = "n", pch = pch, cex = cex,
+     main = "OC sample depth")
+arrows(x0 = OCdep$ci.lb[1], x1 = OCdep$ci.ub[1], y0 = 3, length = length, angle = -90, code = 3)
+arrows(x0 = OCdep$ci.lb[2], x1 = OCdep$ci.ub[2], y0 = 2, length = length, angle = -90, code = 3)
+arrows(x0 = OCdep$ci.lb[3], x1 = OCdep$ci.ub[3], y0 = 1, length = length, angle = -90, code = 3)
+abline(v = 0, lty = 1, col = adjustcolor("grey40", 0.5), lwd = 2)
+axis(2, at = c(1:3), c("0-5+ cm", "0-2.5 cm", "0-1 cm"), las = 1)
+text(-1.1,3, "[62]")
+text(-1.1,2, "[10]")
+text(-1.1,1, "[15]")
+#OC habitat type
+plot(x = OCsed$b[c(2,1)], y = 1:2, xlim = c(-1.1, 0.1), ylim = c(0, 3), xlab = "ln(RR)", ylab = "", yaxt = "n", pch = pch, cex = cex,
+     main = "OC habitat type")
+arrows(x0 = OCsed$ci.lb[1], x1 = OCsed$ci.ub[1], y0 = 2, length = length, angle = -90, code = 3)
+arrows(x0 = OCsed$ci.lb[2], x1 = OCsed$ci.ub[2], y0 = 1, length = length, angle = -90, code = 3)
+abline(v = 0, lty = 1, col = adjustcolor("grey40", 0.5), lwd = 2)
+axis(2, at = c(1,2), c("sand", "mud"), las = 1)
+text(-1,2, "[61]")
+text(-1,1, "[26]")
+#OC season
+plot(x = OCsea$b[c(4,2,3,1)], y = c(4,3,2,1), xlim = c(-1.75, 0.25), ylim = c(0, 4.5), xlab = "ln(RR)", ylab = "", yaxt = "n", pch = pch, cex = cex,
+     main = "OC season")
+arrows(x0 = OCsea$ci.lb[4], x1 = OCsea$ci.ub[4], y0 = 4, length = length, angle = -90, code = 3)
+arrows(x0 = OCsea$ci.lb[2], x1 = OCsea$ci.ub[2], y0 = 3, length = length, angle = -90, code = 3)
+arrows(x0 = OCsea$ci.lb[3], x1 = OCsea$ci.ub[3], y0 = 2, length = length, angle = -90, code = 3)
+arrows(x0 = OCsea$ci.lb[1], x1 = OCsea$ci.ub[1], y0 = 1, length = length, angle = -90, code = 3)
+abline(v = 0, lty = 1, col = adjustcolor("grey40", 0.5), lwd = 2)
+axis(2, at = c(4:1), c("winter", "spring", "summer", "autumn"), las = 1)
+text(-1.6,4, "[14]")
+text(-1.6,3, "[13]")
+text(-1.6,2, "[34]")
+text(-1.6,1, "[24]")
+
+#CH sediment depth
+plot(x = CHdep$b[c(1:3)], y = 3:1, xlim = c(-1.2, 0.5), ylim = c(0.5, 3.5), xlab = "ln(RR)", ylab = "", yaxt = "n", pch = pch, cex = cex,
+     main = "Chl-a sample depth")
+arrows(x0 = CHdep$ci.lb[1], x1 = CHdep$ci.ub[1], y0 = 3, length = length, angle = -90, code = 3)
+arrows(x0 = CHdep$ci.lb[2], x1 = CHdep$ci.ub[2], y0 = 2, length = length, angle = -90, code = 3)
+arrows(x0 = CHdep$ci.lb[3], x1 = CHdep$ci.ub[3], y0 = 1, length = length, angle = -90, code = 3)
+abline(v = 0, lty = 1, col = adjustcolor("grey40", 0.5), lwd = 2)
+axis(2, at = c(1:3), c("0-5+ cm", "0-2.5 cm", "0-1 cm"), las = 1)
+text(-1.1,3, "[60]")
+text(-1.1,2, "[36]")
+text(-1.1,1, "[3]")
+
+#CH habitat type
+plot(x = CHsed$b[c(2,1)], y = 1:2, xlim = c(-1.1, 0.1), ylim = c(0, 3), xlab = "ln(RR)", ylab = "", yaxt = "n", pch = pch, cex = cex,
+     main = "Chl-a habitat type")
+arrows(x0 = CHsed$ci.lb[1], x1 = CHsed$ci.ub[1], y0 = 2, length = length, angle = -90, code = 3)
+arrows(x0 = CHsed$ci.lb[2], x1 = CHsed$ci.ub[2], y0 = 1, length = length, angle = -90, code = 3)
+abline(v = 0, lty = 1, col = adjustcolor("grey40", 0.5), lwd = 2)
+axis(2, at = c(1,2), c("sand", "mud"), las = 1)
+text(-1,2, "[32]")
+text(-1,1, "[67]")
+#CH season
+plot(x = CHsea$b[c(4,2,3,1)], y = c(4,3,2,1), xlim = c(-1.75, 0.25), ylim = c(0, 4.5), xlab = "ln(RR)", ylab = "", yaxt = "n", pch = pch, cex = cex,
+     main = "Chl-a season")
+arrows(x0 = CHsea$ci.lb[4], x1 = CHsea$ci.ub[4], y0 = 4, length = length, angle = -90, code = 3)
+arrows(x0 = CHsea$ci.lb[2], x1 = CHsea$ci.ub[2], y0 = 3, length = length, angle = -90, code = 3)
+arrows(x0 = CHsea$ci.lb[3], x1 = CHsea$ci.ub[3], y0 = 2, length = length, angle = -90, code = 3)
+arrows(x0 = CHsea$ci.lb[1], x1 = CHsea$ci.ub[1], y0 = 1, length = length, angle = -90, code = 3)
+abline(v = 0, lty = 1, col = adjustcolor("grey40", 0.5), lwd = 2)
+axis(2, at = c(4:1), c("winter", "spring", "summer", "autumn"), las = 1)
+text(-1.6,4, "[11]")
+text(-1.6,3, "[6]")
+text(-1.6,2, "[70]")
+text(-1.6,1, "[12]")
+
+dev.off()
+```
+
+## Other meta-regressions with continuous variables to display in supplement
+
+* TOC regressions (immediate impact only)
+ - TOC vs ln(bottom silicate); p = 0.0170; R2 = 0.00%
+ - TOC vs salinity;            p = 0.0007; R2 = 4.59%
+ - TOC vs salinity;            p = 0.0097; R2 = 0.00%
+
+```{r, fig.width =8, fig.height = 6, warning = F}
+OCsal <- rma.uni(data=OC, yi=lnRR, vi=VarLnRR, method="DL", mods=~(salbot), weighted=TRUE)
+OCsil <- rma.uni(data=OC, yi=lnRR, vi=VarLnRR, method="DL", mods=~log(silbot), weighted=TRUE)
+OCdep <- rma.uni(data=OC, yi=lnRR, vi=VarLnRR, method="DL", mods=~(watdepth), weighted=TRUE)
+
+setwd("~/GitHub/Metastudy/Figures/Supplementary")
+pdf("TOC.reg.supp.pdf", width = 6.69, height = 6.69/3)
+
+par(mfrow = c(1,3), mar = c(4,4,1.5,1))
+Col = adjustcolor("darkgreen", 0.5)
+Col2 = adjustcolor("darkgreen", 0.5)
+
+regplot(OCsal, bg = Col, col = Col2, shade = adjustcolor("black", 0.3), grid = T, refline = 0, ylab = "ln(RR)", xlab = "salinity (PSU)", main = "TOC Effect Size vs Salinity", las = 1, lcol = c("grey90","grey25","grey1","grey50"), lty = c(1,0,1,1), lwd = c(2,1,1,2), cex.axis = 0.6, cex.main = 0.85, cex.lab = 0.75)
+regplot(OCsil, bg = Col, col = Col2, shade = adjustcolor("black", 0.3), grid = T, refline = 0, ylab = "ln(RR)", xlab = "ln(dissolved silicate[mmol m-3])", main = "TOC Effect Size vs. Dissolved Silicate", las = 1, lcol = c("grey90","grey25","grey1","grey50"), lty = c(1,0,1,1), lwd = c(2,1,1,2), cex.axis = 0.6, cex.main = 0.85, cex.lab = 0.75)
+regplot(OCdep, bg = Col, col = Col2, shade = adjustcolor("black", 0.3), grid = T, refline = 0, ylab = "ln(RR)", xlab = "water depth (m)", main = "OC Effect Size vs. Water Depth", las = 1, lcol = c("grey90","grey25","grey1","grey50"), lty = c(1,0,1,1), lwd = c(2,1,1,2), cex.axis = 0.6, cex.main = 0.85, cex.lab = 0.75)
+
+dev.off()
+```
+
+* Chl-a regressions (immediate impact only)
+ - Chl-a vs ln(surface net primary production);  p <.0001; R2 = 23.71%
+ - Chl-a vs ln(bottom silicate);                 p <.0001; R2 = 4.59%
+ - Chl-a vs water depth;                         p <.0001; R2 = 16.75%
+
+```{r, fig.width =8, fig.height = 6, warning = F}
+CHnpp <- rma.uni(data=CH, yi=lnRR, vi=VarLnRR, method="DL", mods=~log(nppsurf), weighted=TRUE)
+CHsil <- rma.uni(data=CH, yi=lnRR, vi=VarLnRR, method="DL", mods=~log(silbot), weighted=TRUE)
+CHdep <- rma.uni(data=CH, yi=lnRR, vi=VarLnRR, method="DL", mods=~(watdepth), weighted=TRUE)
+
+setwd("~/GitHub/Metastudy/Figures/Supplementary")
+pdf("Chla.reg.supp.pdf", width = 6.69, height = 6.69/3)
+
+par(mfrow = c(1,3), mar = c(4,4,1.5,1))
+Col = adjustcolor("darkgreen", 0.5)
+Col2 = adjustcolor("darkgreen", 0.5)
+
+regplot(CHnpp, bg = Col, col = Col2, shade = adjustcolor("black", 0.3), grid = T, refline = 0, ylab = "ln(RR)", xlab = "ln(net primary production [g m-3 d-1])", main = "Chl-a Effect Size vs Primary Production", las = 1, lcol = c("grey90","grey25","grey1","grey50"), lty = c(1,0,1,1), lwd = c(2,1,1,2), cex.axis = 0.6, cex.main = 0.85, cex.lab = 0.75)
+regplot(CHsil, bg = Col, col = Col2, shade = adjustcolor("black", 0.3), grid = T, refline = 0, ylab = "ln(RR)", xlab = "ln(dissolved silicate[mmol m-3])", main = "Chl-a Effect Size vs. Dissolved Silicate", las = 1, lcol = c("grey90","grey25","grey1","grey50"), lty = c(1,0,1,1), lwd = c(2,1,1,2), cex.axis = 0.6, cex.main = 0.85, cex.lab = 0.75)
+regplot(CHdep, bg = Col, col = Col2, shade = adjustcolor("black", 0.3), grid = T, refline = 0, ylab = "ln(RR)", xlab = "water depth (m)", main = "Chl-a Effect Size vs. Water Depth", las = 1, lcol = c("grey90","grey25","grey1","grey50"), lty = c(1,0,1,1), lwd = c(2,1,1,2), cex.axis = 0.6, cex.main = 0.85, cex.lab = 0.75)
+
+dev.off()
+```
+
+## Summary plots using comprehensive dataset
+
+Set dataframe to use comprehensive dataset
+```{r}
+df1 = All
+# subsetting
+Ex = subset(All, stype=="Experimental")
+Ob = subset(All, stype=="Observational")
+```
+
+## Summary EF Comprehensive
+```{r, fig.width =5, fig.height = 6, warning=FALSE}
+setwd("~/GitHub/Metastudy/Figures/Supplementary")
+
+pdf("Summary EF(comprehensive).pdf", width = 6.69, height = 6.69)
+tpos = -12
+tpos2 = 11
+PlotSum("TOC", yhigh = 16, start = T, textpos = tpos, xlow = -18, xhigh = 14, row = 16, textpos2 = tpos2)
+PlotSum("Chl-a", row = 15, textpos = tpos, textpos2 = tpos2)  
+PlotSum("Phytopigments", row = 14, textpos = tpos, textpos2 = tpos2)
+PlotSum("Phaeopigments", row = 13, textpos = tpos, textpos2 = tpos2)
+PlotSum("OM (LOI)", row = 12, textpos = tpos, textpos2 = tpos2)  
+PlotSum("TN", row = 11, textpos = tpos, textpos2 = tpos2)  
+PlotSum("TOC/TN", row = 10, textpos = tpos, textpos2 = tpos2)  
+PlotSum("Carbohydrates", row = 9, textpos = tpos, textpos2 = tpos2)  
+PlotSum("Lipids", row = 8, textpos = tpos, textpos2 = tpos2)  
+PlotSum("Proteins", row = 7, textpos = tpos, textpos2 = tpos2)  
+PlotSum("Biopolymeric C (BPC)", row = 6, textpos = tpos, textpos2 = tpos2)  
+PlotSum("Algal fraction of BPC", row = 5, textpos = tpos, textpos2 = tpos2)  
+PlotSum("oxygen consumption", row = 4, textpos = tpos, textpos2 = tpos2)  
+PlotSum("NHx flux", row = 3, textpos = tpos, textpos2 = tpos2)  
+PlotSum("Nitrate flux", row = 2, textpos = tpos, textpos2 = tpos2)  
+PlotSum("Phosphate flux", row = 1, textpos = tpos, textpos2 = tpos2)
+dev.off()
+```
+
+## Standardized mean difference (Cohn's d) comparison
+* All studies
+```{r, fig.width =7, fig.height = 4, warning = F}
+setwd("~/GitHub/Metastudy/Figures/Supplementary")
+
+pdf("Comparison(comprehensive).pdf", width = 6.69, height = 4.5)
+tpos = -17
+tpos2 = 15
+GrPlot("TOC", yhigh = 4.5, textpos = tpos, xlow = -26, xhigh = 20, start = T, row = 4, textpos2 = tpos2)
+GrPlot("Chl-a", textpos = tpos, start = F, row  = 3, textpos2 = tpos2)
+GrPlot("OM (LOI)", textpos = tpos, start = F, row  = 2, textpos2 = tpos2)
+GrPlot("TN", textpos = tpos, start = F, row  = 1, textpos2 = tpos2)
+textpos = -23
+PlotD("TOC", row = 4, start = F, textpos = textpos, textpos2 = tpos2)  
+PlotD("Chl-a", row = 3, start = F, textpos = textpos, textpos2 = tpos2)  
+PlotD("OM (LOI)", row = 2, start = F, textpos = textpos, textpos2 = tpos2)  
+PlotD("TN", row = 1, start = F, textpos = textpos, textpos2 = tpos2)  
+legend("bottomleft", pch = 15, col = c("black", adjustcolor("red", 0.5)), lty = 1,  c("Comparative studies", "Gradient Studies"), 
+       bty = "n", cex = 0.8)
+dev.off()
+```
+
+Experimental vs observational
+* All studies
+```{r, fig.width =6, fig.height = 8, warning=FALSE}
+setwd("~/GitHub/Metastudy/Figures/Supplementary")
+
+pdf("E vs O studies(All).pdf", width = 6.69, height = 8.5)
+tpos = -13
+mv = 0.15
+PlotEO(data = Ex, parm="TOC", yhigh = 17, textpos = tpos, xlow = -16, xhigh = 12, row = 17, mv = mv)
+PlotEO(data = Ex, parm="Chl-a", row = 16, start = F, textpos = tpos, mv = mv)  
+PlotEO(data = Ex, parm="Phytopigments", row = 15, start = F, textpos = tpos, mv = mv)
+PlotEO(data = Ex, parm="Phaeopigments", row = 14, start = F, textpos = tpos, mv = mv)
+PlotEO(data = Ex, parm="OM (LOI)", row = 13, start = F, textpos = tpos, mv = mv)  
+PlotEO(data = Ex, parm="TN", row = 12, start = F, textpos = tpos, mv = mv)  
+PlotEO(data = Ex, parm="TOC/TN", row = 11, start = F, textpos = tpos, mv = mv)  
+PlotEO(data = Ex, parm="Carbohydrates", row = 10, start = F, textpos = tpos, mv = mv)  
+PlotEO(data = Ex, parm="Lipids", row = 9, start = F, textpos = tpos, mv = mv)  
+PlotEO(data = Ex, parm="Proteins", row = 8, start = F, textpos = tpos, mv = mv)  
+PlotEO(data = Ex, parm="Biopolymeric C (BPC)", row = 7, start = F, textpos = tpos, mv = mv)  
+PlotEO(data = Ex, parm="Algal fraction of BPC", row = 6, start = F, textpos = tpos, mv = mv)  
+PlotEO(data = Ex, parm="oxygen consumption", row = 5, start = F, textpos = tpos, mv = mv)  
+PlotEO(data = Ex, parm="NHx flux", row = 4, start = F, textpos = tpos, mv = mv)  
+PlotEO(data = Ex, parm="Nitrate flux", row = 3, start = F, textpos = tpos, mv = mv)  
+PlotEO(data = Ex, parm="Phosphate flux", row = 2, start = F, textpos = tpos, mv = mv)
+PlotEO(data = Ex, parm="Mean grain size", row = 1, start = F, textpos = tpos, mv = mv)
+
+Col = adjustcolor("red", 0.7)
+mv = -0.15
+tpos = -8
+PlotEO(data = Ob, parm="TOC", yhigh = 17, start = F, textpos = tpos, row = 17, mv = mv, lab = F, Col = Col)
+PlotEO(data = Ob, parm="Chl-a", row = 16, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="Phytopigments", row = 15, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)
+PlotEO(data = Ob, parm="Phaeopigments", row = 14, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)
+PlotEO(data = Ob, parm="OM (LOI)", row = 13, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="TN", row = 12, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="TOC/TN", row = 11, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="Carbohydrates", row = 10, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="Lipids", row = 9, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="Proteins", row = 8, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="Biopolymeric C (BPC)", row = 7, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="Algal fraction of BPC", row = 6, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="oxygen consumption", row = 5, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="NHx flux", row = 4, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="Nitrate flux", row = 3, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="Phosphate flux", row = 2, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)
+PlotEO(data = Ob, parm="Mean grain size", row = 1, start = F, textpos = tpos, mv = mv, lab = F, Col = Col)
+
+legend("bottomleft", pch = 15, col = c("black", adjustcolor("red", 0.5)), lty = 1,  c("Experimental studies", "Observational Studies"), bty = "n", cex = 0.75)
+
+dev.off()
+```
