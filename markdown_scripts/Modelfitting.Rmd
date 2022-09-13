@@ -11,6 +11,7 @@ This script is used to run statistics on the meta-analyis effect size data. Firs
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(metafor)
 ```
 
 Input functions for plots and calculations
@@ -138,9 +139,9 @@ Models for significant nominal variables (also used in subgroup analysis) for
 
 ```{r, warning = F}
 # TOC
-OCdep <- rma.uni(data=OC, yi=lnRR, vi=VarLnRR, method = "REML",mods=~(slicedepth), weighted=TRUE)  # *0-1; R2=19.85%
-OCsed <- rma.uni(data=OC, yi=lnRR, vi=VarLnRR, method = "REML", mods=~(hhabtype)-1, weighted=TRUE) # NS; R2=10.41% 
-OCsea <- rma.uni(data=OC, yi=lnRR, vi=VarLnRR, method = "REML",mods=~(hseason)-1, weighted=TRUE)   # NS; R2=7.66%
+OCdep <- rma.uni(data=OC, yi=lnRR, vi=VarLnRR, method = "REML",mods=~(slicedepth), weighted=TRUE)# *0-1; R2=19.85%
+OCsed <- rma.uni(data=OC, yi=lnRR, vi=VarLnRR, method = "REML", mods=~(hhabtype), weighted=TRUE) # NS; R2=10.41% 
+OCsea <- rma.uni(data=OC, yi=lnRR, vi=VarLnRR, method = "REML",mods=~(hseason), weighted=TRUE)   # NS; R2=7.66%
 
 # Chl-a
 CHdep <- rma.uni(data=CH, yi=lnRR, vi=VarLnRR, method = "REML",mods=~(slicedepth), weighted=TRUE)# ***0-1; R2=5.11%
@@ -426,9 +427,9 @@ M6log <- rma.uni(data=CH, yi=lnRR, vi=VarLnRR, method="REML", mods=~log(shoredis
 AIC.rma(M5,M5log) # log slightly better (no-log=87.20995, log=86.58673)
 
 # Net primary production
-M7 <- rma.uni(data=CH, yi=lnRR, vi=VarLnRR, method="REML", mods=~(nppsurf), weighted=TRUE)        # *** R2 = 21.03%
+M7 <- rma.uni(data=CH, yi=lnRR, vi=VarLnRR, method="REML", mods=~(nppsurf), weighted=TRUE)        # *** R2 = 67.00%
 M7log <- rma.uni(data=CH, yi=lnRR, vi=VarLnRR, method="REML", mods=~log(nppsurf), weighted=TRUE)  # *** R2 = 30.64%
-AIC.rma(M7,M7log) # log better (no-log=91.88068, log=87.50396)
+AIC.rma(M7,M7log) # log better (no-log=40.93678, log=45.23666z)
 
 # Bottom Phosphorus
 M8 <- rma.uni(data=CH, yi=lnRR, vi=VarLnRR, method="REML", mods=~(phosbot), weighted=TRUE)        # NS R2 = 0.00%
@@ -623,7 +624,9 @@ m10 <- update.rma(m9, ~ . - log(silbot))  # drop log(bottom silica), all signifi
 # Best model for OC immediate
 # Refit with REML
 BestMod <- rma.uni(data=OC, yi=lnRR, vi=VarLnRR, method="REML", weighted=TRUE,
-            mods= ~ log(cvel) + slicedepth-1) 
+            mods= ~ log(cvel) + slicedepth) 
+BestMod <- rma.uni(data=OC, yi=lnRR, vi=VarLnRR, method="REML", weighted=TRUE,
+            mods= ~ log(cvel) + slicedepth) 
 ```
 
 ## TOC trawling + recovery
@@ -655,6 +658,7 @@ m7 <- update.rma(m6, ~ . - log(silbot))                       # drop log(silbot)
 # Refit with REML
 BestMod <- rma.uni(data=OCrec, yi=lnRR, vi=VarLnRR, method="REML", weighted=TRUE,
             mods= ~ log(cvel) + log(timetrawldays+1) + slicedepth + log(cvel):log(timetrawldays+1)) 
+
 BestMod <- rma.uni(data=OCrec, yi=lnRR, vi=VarLnRR, method="REML", weighted=TRUE,
             mods= ~ log(cvel) + log(timetrawldays+1) + slicedepth + log(cvel):log(timetrawldays+1)) 
 ```
