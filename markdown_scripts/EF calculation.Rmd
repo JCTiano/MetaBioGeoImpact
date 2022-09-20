@@ -2,7 +2,10 @@
 title: "Effect size calculation for meta-analysis"
 author: "Justin Tiano"
 date: "01/08/2022"
-output: html_document
+output:
+  html_document:
+    toc: true
+    toc_float: true
 ---
 
 # Introduction 
@@ -15,11 +18,10 @@ The resulting dataframe is saved as "Exp-Obs.rda".
 
 ```{r loading required packages, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-if (!require("pacman")) install.packages("pacman")
-pacman::p_load(effsize, metafor)
 ```
 
-Read data
+# Read data
+
 ```{r}
 
 df <- read.csv("../dataset/metadata.csv")
@@ -42,8 +44,10 @@ df$n2=NA
 
 ```
 
-Organize columns to calculate lnRR
+# Organize columns to calculate lnRR
+
 ```{r}
+
 ### Before After studies ###
 df$response1[df$Study.type=="Before After"]=df$Mean_Before_impact[df$Study.type=="Before After"]
 df$SD1[df$Study.type=="Before After"]=df$SD_Before_impact[df$Study.type=="Before After"]
@@ -76,10 +80,23 @@ df$n2[df$Study.type=="Before After Control Impact"]=(df$n_After_impact[df$Study.
 # Make all SD's positive
 df$SD1 = abs(df$SD1)
 df$SD2 = abs(df$SD2)
+
 ```
 
-Calculate lnRR and VlnRR
+# Calculate lnRR and VlnRR
+
+Log response ratio is calculated as (1) :
+$ln(\overline{x}_{2}/\overline{x}_{1})$                                      (1), 
+with $\overline{x}_{2}$ and $\overline{x}_{1})$ the means of the studied variable 
+in the impact vs. control, or after vs. before samples respectively.
+
+VarLnRR is calculated by first calculating the pooled standard deviation $S$ (2),
+$S_{pooled} = \sqrt{\frac{(n_{1}-1)S^2_{1} + (n_{2}-1)S^2_{2}}{n_{1}+n_{2}-2}}$ (2)
+and using $S$ to calculate the variance $V_{D}$ (3). See Borenstein et al., 2009
+$V_{D} = \sqrt{\frac{S^2_{1}}{n_{1}} + \frac{S^2_{2}}{n_{2}}}$               (3)
+
 ```{r, warning=FALSE}
+
 # Calculate lnRR
 df$lnRR=log(df$response2/df$response1)
 
@@ -134,5 +151,6 @@ df$WYgsquared = df$WYg^2
 
 # save stuff 
 save(file = "../r_objects/Exp-Obs.rda", df)
+
 ```
 

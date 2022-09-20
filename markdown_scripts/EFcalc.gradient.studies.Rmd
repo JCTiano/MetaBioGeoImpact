@@ -13,13 +13,11 @@ are used and converted to standardized mean difference (Cohn's d).
 The resulting dataframe is saved as "Grad.rda".
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-if (!require("pacman")) install.packages("pacman")
-pacman::p_load(effsize, metafor)
 source("../source_code/Functions_for_correlation_input.R") # Functions for r (correlation effect size) calculation and data input
 ```
 
-Load data
+# Load data
+
 ```{r}
 df <- read.csv("../dataset/Bottom trawling flatfile.csv")
 names(df)[c(11:47)] = c("Location", "Region", "Longhurst.province","Region.Notes", "article_type_id", "Experimental.observational", 
@@ -40,7 +38,7 @@ df$Response.variable[df$Response.variable=="Phaeophytin-a"] = "Phaeopigments"
 
 # Calculating Fishers Z for individual trawling gradient studies
 
-Lamarque et al 2021
+### Lamarque et al 2021
 ```{r}
 study = subset(df, df$First.author=="Lamarque B.")
 
@@ -56,7 +54,7 @@ tt = Input2 (ID = study, rows = 4)
 G1 = cbind(tt,dat, study = rep("G1", nrow(dat)))
 ```
 
-McLaverty et al 2021 
+### McLaverty et al 2021 
 ```{r}
 study = subset(df, df$article_id==10)
 
@@ -73,7 +71,7 @@ tt = Input2 (ID = study, rows = 4)
 G2 = cbind(tt,dat, study = rep("G2", nrow(dat)))
 ```
 
-McLaverty et al 2019 
+### McLaverty et al 2019 
 ```{r}
 study = subset(df, df$article_id==13)
 
@@ -88,7 +86,7 @@ tt = Input2 (ID = study, rows = 2)
 G3 = cbind(tt,dat, study = rep("G3", nrow(dat)))
 ```
 
-Ramalho et al 2018
+### Ramalho et al 2018
 ```{r}
 study = subset(df, df$article_id==28)
 
@@ -105,7 +103,7 @@ tt = Input2 (ID = study, rows = 4)
 G4 = cbind(tt,dat, study = rep("G4", nrow(dat)))
 ```
 
-Sciberras et al 2017
+### Sciberras et al 2017
 ```{r}
 study = subset(df, df$article_id==38)
 
@@ -122,7 +120,7 @@ tt = Input2 (ID = study, rows = 3)
 G5 = cbind(tt,dat, study = rep("G5", nrow(dat)))
 ```
 
-Rosli et al 2016
+### Rosli et al 2016
 ```{r}
 study = subset(df, df$article_id==41)
 # corrections to the data
@@ -190,7 +188,7 @@ G6b = cbind(tt,dat, study = rep("G6b", nrow(dat)))
 G6 = rbind(G6a, G6b)
 ```
 
-Hale et al 2016 
+### Hale et al 2016 
 ```{r}
 study = subset(df, df$article_id==49)
 vars = unique(study$Response.variable)
@@ -227,7 +225,7 @@ G7b = cbind(tt,dat, study = rep("G7b", nrow(dat)))
 G7 = rbind(G7a, G7b)
 ```
 
-Sciberras et al 2016 
+### Sciberras et al 2016 
 ```{r}
 study = subset(df, df$article_id==53)
 vars = unique(study$Response.variable)
@@ -264,7 +262,7 @@ G8b = cbind(tt,dat, study = rep("G8b", nrow(dat)))
 G8 = rbind(G8a, G8b)
 ```
 
-Muntadas A. et al 2015
+### Muntadas A. et al 2015
 ```{r}
 study = subset(df, df$article_id==59)
 vars = unique(study$Response.variable)
@@ -286,7 +284,7 @@ tt = Input2 (ID = study, rows = nrow(dat))
 G9 = cbind(tt,dat, study = rep("G9", nrow(dat)))
 ```
 
-Atkinson L.J. et al 2011
+### Atkinson L.J. et al 2011
 ```{r}
 study = subset(df, df$article_id==89)
 vars = unique(study$Response.variable)
@@ -304,7 +302,7 @@ G10 = cbind(tt,dat, study = rep("G10", nrow(dat)))
 
 ```
 
-Trimmer M. et al 2005
+### Trimmer M. et al 2005
 ```{r}
 study = subset(df, df$article_id==136)
 vars = unique(study$Response.variable)
@@ -324,7 +322,7 @@ tt = Input2 (ID = study, rows = nrow(dat))
 G11 = cbind(tt,dat, study = rep("G11", nrow(dat)))
 ```
 
-Stone R. et al 2003
+### Stone R. et al 2003
 ```{r}
 study = subset(df, df$article_id==152)
 vars = unique(study$Response.variable)

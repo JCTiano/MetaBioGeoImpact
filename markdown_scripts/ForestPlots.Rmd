@@ -12,10 +12,7 @@ output: html_document
 ### Load packages
 
 ```{r setup, include=FALSE}
-
-require(metafor)
 source("http://highstat.com/Books/BGS/GAMM/RCodeP2/HighstatLibV6.R")
-
 ```
 
 ### Load data
@@ -29,7 +26,7 @@ load("../r_objects/Meta.dat.Rda")
 
 ### Data wrangling
 
-- Removing some unneccesary tables.
+- Removing some unnecessary tables.
 
 ```{r}
 
