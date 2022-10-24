@@ -19,7 +19,7 @@ source("../source_code/Functions_for_correlation_input.R") # Functions for r (co
 # Load data
 
 ```{r}
-df <- read.csv("../dataset/Bottom trawling flatfile.csv")
+df <- read.csv("../dataset/gradient_studies_flatfile.csv")
 names(df)[c(11:47)] = c("Location", "Region", "Longhurst.province","Region.Notes", "article_type_id", "Experimental.observational", 
                         "Study.type", "study_type.Notes", "Sampling_id", "Core.name", "Sampling.date", "Latitude","Longitude", 
                         "Water.depth", "Habitat.type","Seasonality", "Notes_site", "Trawled.untrawled", "Before.After", "gear.type", 
@@ -27,12 +27,12 @@ names(df)[c(11:47)] = c("Location", "Region", "Longhurst.province","Region.Notes
                         "Error.estimate", "Response.unit", "Error.estimate.type","replicates", "Figure.Table.of.the.article", 
                         "variables.Notes", "Covariate", "covariates.Value", "covariates.Error", "covariates.Unit", "covariates.Notes")
 
-# Fix names
-df$Trawled.untrawled[df$Trawled.untrawled=="untrawled"] = "Untrawled"
-df$Trawled.untrawled[df$Trawled.untrawled=="trawled"] = "Trawled"
-df$Trawled.untrawled[df$Trawled.untrawled=="trawled "] = "Trawled"
-df$Trawled.untrawled[df$Trawled.untrawled=="before "] = "Before"
-df$Trawled.untrawled[df$Trawled.untrawled=="after"] = "After"
+# # Fix names (first parts can be removed ???)
+# df$Trawled.untrawled[df$Trawled.untrawled=="untrawled"] = "Untrawled"
+# df$Trawled.untrawled[df$Trawled.untrawled=="trawled"] = "Trawled"
+# df$Trawled.untrawled[df$Trawled.untrawled=="trawled "] = "Trawled"
+# df$Trawled.untrawled[df$Trawled.untrawled=="before "] = "Before"
+# df$Trawled.untrawled[df$Trawled.untrawled=="after"] = "After"
 df$Response.variable[df$Response.variable=="Phaeophytin-a"] = "Phaeopigments"
 ```
 
@@ -339,12 +339,49 @@ tt = Input2 (ID = study, rows = nrow(dat))
 G12 = cbind(tt,dat, study = rep("G12", nrow(dat)))
 ```
 
+### Eleftherou et al., 1992
+```{r}
+study = subset(df, df$article_id==183)
+vars = unique(study$Response.variable)
+
+# Fishing intensity:
+  Fishingunit = "Trawling effort_numerical"
+x1 = plotR(data = study, Funit = Fishingunit, var = vars[1], plot = F) # "TOC"
+x2 = plotR(data = study, Funit = Fishingunit, var = vars[3], plot = F) # "Chl-a"
+x3 = plotR(data = study, Funit = Fishingunit, var = vars[3], plot = F) # "Mean grain size"
+
+# input values into dataframe 
+dat = rbind(x1, x2, x3)
+dat = dat[,c("var", "r", "n", "V", "SEz")]
+tt = Input2 (ID = study, rows = nrow(dat))
+G13 = cbind(tt,dat, study = rep("G13", nrow(dat)))
+
+```
+
+### Wang et al., 2021
+```{r}
+study = subset(df, df$article_id==3)
+vars = unique(study$Response.variable)
+
+# Fishing intensity:
+  Fishingunit = "hours/km2"
+x1 = plotR(data = study, Funit = Fishingunit, var = vars[1], plot = F) # "OM (LOI)"
+x2 = plotR(data = study, Funit = Fishingunit, var = vars[8], plot = F) # "Mud content (<63 um)"
+
+# input values into dataframe 
+dat = rbind(x1, x2)
+dat = dat[,c("var", "r", "n", "V", "SEz")]
+tt = Input2 (ID = study, rows = nrow(dat))
+G14 = cbind(tt,dat, study = rep("G14", nrow(dat)))
+
+```
+
 # Combining data from all trawl gradient studies into one data frame. 
  - Fishers Z effect sizes are converted to standardized mean differences (Cohen's d) to compare with observational and experimental studies
  - The resulting dataframe is saved for further analysis
 
 ```{r}
-GradInfo =  rbind(G1,G2,G3, G4, G5, G6, G7, G8, G9, G10, G11, G12)
+GradInfo =  rbind(G1,G2,G3, G4, G5, G6, G7, G8, G9, G10, G11, G12, G13, G14)
 colnames(GradInfo)[10] = "Response.variable"
 
 df = GradInfo
@@ -354,5 +391,5 @@ df$d = 2 * df$r / (sqrt(1 - df$r^2))
 df$Vd = 4 * df$V / (1 - df$r^2)^3
 df$Vd[df$Vd==Inf]=NA  
 
-save(file = "../r_objects/Grad.rda", df)
+save(file = "../r_objects/Grad_new.rda", df)
 ```

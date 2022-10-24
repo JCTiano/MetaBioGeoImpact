@@ -18,7 +18,8 @@ Load data
 ```{r}
 
 source("../source_code/Plot.functions.R")
-load("../r_objects/Grad.rda")
+# load("../r_objects/Grad.rda")
+load("../r_objects/Gradnew.rda")
 GradInfo = df
 load("../r_objects/meta.dat3.rda")
 

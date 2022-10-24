@@ -24,7 +24,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 
-df <- read.csv("../dataset/metadata.csv")
+df <- get(load("../dataset/dataset.rdata"))
 
 # corrections
 df$Study.type[df$article_id==12]="Before After"  
@@ -32,19 +32,13 @@ df$Study.type[df$article_id==23]="Before After"
 df$Study.type[df$article_id==164]="Before After"
 df$Study.type[df$article_id==132]="Before After"
 df$Study.type[149:150] = "Control Impact"        # Change study type for 2 parameters in article 66
-df = df[-c(197,226), ]
 
-# Make new columns for effect size calculations
-df$response1=NA
-df$SD1=NA
-df$n1=NA
-df$response2=NA
-df$SD2=NA
-df$n2=NA
+# NOT DONE YET df = df[-c(197,226), ]
 
 ```
 
 # Organize columns to calculate lnRR
+
 
 ```{r}
 
@@ -77,6 +71,7 @@ df$n1[df$Study.type=="Before After Control Impact"]=(df$n_After_control[df$Study
                                                            + df$n_Before_control[df$Study.type=="Before After Control Impact"])/2
 df$n2[df$Study.type=="Before After Control Impact"]=(df$n_After_impact[df$Study.type=="Before After Control Impact"] 
                                                            + df$n_Before_impact[df$Study.type=="Before After Control Impact"])/2
+
 # Make all SD's positive
 df$SD1 = abs(df$SD1)
 df$SD2 = abs(df$SD2)
@@ -150,7 +145,7 @@ df$WYg2 = df$Wg * df$g ^ 2  # W * Y^2
 df$WYgsquared = df$WYg^2
 
 # save stuff 
-save(file = "../r_objects/Exp-Obs.rda", df)
+save(file = "../r_objects/Exp-Obs_181022.rda", df)
 
 ```
 
