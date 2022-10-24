@@ -17,49 +17,137 @@ library(metafor)
 Input functions for plots and calculations
  - shows edits to the original effect size dataframe (df) which includes combining certain categories, and fixing details for individual studies  
 ```{r}
-load("../r_objects/Exp-Obs.rda")
+# load("../r_objects/Exp-Obs.rda")
+load("../r_objects/Exp-Obs_181022.rda")
 
-# Edit names
-names(df)[c(9:10,14:15,37,44,47,48,49,51,11,38,40,39,3,52,46,45,50)] = c("hhabtype","hseason","watdepth","slicedepth","timetrawldays",
-                                                                   "cvel", "phosbot", "salbot", "silbot", "nppsurf", "gear", 
-                                                                   "heffort", "effortGFW", "heffortunits", "stype", "shoredist",
-                                                                   "nitbot","O2bot","tempbot")
-df = df[,c(1,3,7,9:16,37:52,61:82)] # reduce number of columns
+# # Edit names --> For Exp-Obs.rda normal.
+# names(df)[c(9:10,14:15,37,44,47,48,49,51,11,38,40,39,3,52,46,45,50)] = c("hhabtype","hseason","watdepth","slicedepth","timetrawldays",
+#                                                                    "cvel", "phosbot", "salbot", "silbot", "nppsurf", "gear", 
+#                                                                    "heffort", "effortGFW", "heffortunits", "stype", "shoredist",
+#                                                                    "nitbot","O2bot","tempbot")
+# df = df[,c(1,3,7,9:16,37:52,61:82)] # reduce number of columns
 
-# Fixing data: combining categories
+# Edit column names for to facilitate modelling.
+names(df)[c(1, 2, 13, 14, 20:40)] = c("respvar"   , "slicedepth", "stype"        ,
+                                      "hstype"    ,"watdepth"   , "heffortnum"   , 
+                                      "effortGFW" , "chlabot"   , "cvel"         ,
+                                      "O2bot"     , "nitbot"    , "phosbot"      ,
+                                      "salbot"    , "silbot"    , "tempbot"      , 
+                                      "nppsurf"   , "shoredist" , "timefirstdist",
+                                      "hhabtype"  , "hseason"   , "gear"         ,
+                                      "histfished", "effortcat" , "heffortunits" , 
+                                      "CTRLhisttrawled")
 
-## Seasonality 
-df$hseason[df$hseason=="Tropical dry season"] = "winter"
-df$hseason[df$hseason=="Tropical wet season"] = "summer"
-df$hseason[df$hseason=="Temperate winter"] = "winter"
-df$hseason[df$hseason=="Temperate summer"] = "summer"
-df$hseason[df$hseason=="Temperate spring"] = "spring"
-df$hseason[df$hseason=="Temperate autumn"] = "autumn"
 
-## Depth slices
-df$slicedepth[df$slicedepth=="0-0.5"] = "0-1"
-df$slicedepth[df$slicedepth=="0-5.5"] = "0-5"
-df$slicedepth[df$slicedepth=="Grab sample"] = "0-5"
-df$slicedepth[df$slicedepth=="Full core"] = "0-5"
-df$slicedepth[df$slicedepth=="surface sediment"] = "0-1"
-df$slicedepth[df$slicedepth=="0-2"] = "0-2.5"
-df$slicedepth[df$slicedepth=="0-5"] = "0-5+"
-df$slicedepth[df$slicedepth=="0-10"] = "0-5+"
 
-## Habitat
-df$hhabtype[df$hhabtype=="Deep mud"] = "Shallow mud"
-df$hhabtype[df$hhabtype=="Shallow sandy mud"] = "Shallow mud"
-df$hhabtype[df$hhabtype=="Shallow silty sand"] = "Shallow sand"
-df$hhabtype[df$hhabtype=="Shallow silt"] = "Shallow mud"
-df$hhabtype[df$hhabtype=="Shallow sand"] = "Sand"
-df$hhabtype[df$hhabtype=="Shallow mud"] = "Mud"
+# Is this needed (?)
+# df = df[,c(1,3,7,9:16,37:52,61:82)] # reduce number of columns
+
+
+# Refactoring data: combining categories
+
+## Seasonality --> Already done by Sarah
+# df$hseason[df$hseason=="Tropical dry season"] = "winter"
+# df$hseason[df$hseason=="Tropical wet season"] = "summer"
+# df$hseason[df$hseason=="Temperate winter"] = "winter"
+# df$hseason[df$hseason=="Temperate summer"] = "summer"
+# df$hseason[df$hseason=="Temperate spring"] = "spring"
+# df$hseason[df$hseason=="Temperate autumn"] = "autumn"
+
+## Depth slices --> I think there's still something wrong here.
+## I'm going with 0-1, 1-2, 2-5, 5-10, 10+ as classes for lowest common denominator.
+## For the categories 0-x it is more difficult but al least the number of categories has been
+## brought down drastically already.
+df$sslicedepth <- df$slicedepth
+df$sslicedepth[df$sslicedepth=="0-0.3"]   = "0-1"
+df$sslicedepth[df$sslicedepth=="0-0.5"]   = "0-1"
+df$sslicedepth[df$sslicedepth=="0-1"]     = "0-1"
+df$sslicedepth[df$sslicedepth=="0.5-1"]   = "0-1"
+df$sslicedepth[df$sslicedepth=="Surface"] = "0-1"
+
+df$sslicedepth[df$sslicedepth=="1-1.5"] = "1-2"
+df$sslicedepth[df$sslicedepth=="1.5-2"] = "1-2"
+df$sslicedepth[df$sslicedepth=="1-3"]   = "1-2" #ranks
+
+df$sslicedepth[df$sslicedepth=="2-2.5"] = "2-5"
+df$sslicedepth[df$sslicedepth=="2.5-3"] = "2-5"
+df$sslicedepth[df$sslicedepth=="2-3"]   = "2-5"
+df$sslicedepth[df$sslicedepth=="3-4"]   = "2-5"
+df$sslicedepth[df$sslicedepth=="4-5"]   = "2-5"
+df$sslicedepth[df$sslicedepth=="3-5"]   = "2-5"
+df$sslicedepth[df$sslicedepth=="3-3.5"] = "2-5"
+df$sslicedepth[df$sslicedepth=="3.5-4"] = "2-5"
+df$sslicedepth[df$sslicedepth=="4-4.5"] = "2-5"
+df$sslicedepth[df$sslicedepth=="4.5-5"] = "2-5"
+df$sslicedepth[df$sslicedepth=="2-4"]   = "2-5"
+df$sslicedepth[df$sslicedepth=="4-6"]   = "2-5"
+
+df$sslicedepth[df$sslicedepth=="5-6"]  = "5-10"
+df$sslicedepth[df$sslicedepth=="6-7"]  = "5-10"
+df$sslicedepth[df$sslicedepth=="7-8"]  = "5-10"
+df$sslicedepth[df$sslicedepth=="8-9"]  = "5-10"
+df$sslicedepth[df$sslicedepth=="9-10"] = "5-10"
+df$sslicedepth[df$sslicedepth=="5-7"]  = "5-10"
+df$sslicedepth[df$sslicedepth=="7-9"]  = "5-10"
+df$sslicedepth[df$sslicedepth=="7-10"] = "5-10"
+df$sslicedepth[df$sslicedepth=="5-10"] = "5-10"
+df$sslicedepth[df$sslicedepth=="4-8"]  = "5-10"
+df$sslicedepth[df$sslicedepth=="6-10"] = "5-10"
+
+df$sslicedepth[df$sslicedepth=="10-11"] = "10+"
+df$sslicedepth[df$sslicedepth=="11-12"] = "10+"
+df$sslicedepth[df$sslicedepth=="12-13"] = "10+"
+df$sslicedepth[df$sslicedepth=="13-14"] = "10+"
+df$sslicedepth[df$sslicedepth=="14-15"] = "10+"
+df$sslicedepth[df$sslicedepth=="15-16"] = "10+"
+df$sslicedepth[df$sslicedepth=="16-17"] = "10+"
+df$sslicedepth[df$sslicedepth=="17-18"] = "10+"
+df$sslicedepth[df$sslicedepth=="18-19"] = "10+"
+df$sslicedepth[df$sslicedepth=="19-20"] = "10+"
+df$sslicedepth[df$sslicedepth=="20-21"] = "10+"
+df$sslicedepth[df$sslicedepth=="21-22"] = "10+"
+df$sslicedepth[df$sslicedepth=="22-23"] = "10+"
+df$sslicedepth[df$sslicedepth=="23-24"] = "10+"
+df$sslicedepth[df$sslicedepth=="24-25"] = "10+"
+df$sslicedepth[df$sslicedepth=="25-26"] = "10+"
+df$sslicedepth[df$sslicedepth=="26-27"] = "10+"
+df$sslicedepth[df$sslicedepth=="27-28"] = "10+"
+df$sslicedepth[df$sslicedepth=="28-29"] = "10+"
+df$sslicedepth[df$sslicedepth=="29-30"] = "10+"
+df$sslicedepth[df$sslicedepth=="30-31"] = "10+"
+df$sslicedepth[df$sslicedepth=="31-32"] = "10+"
+df$sslicedepth[df$sslicedepth=="32-33"] = "10+"
+df$sslicedepth[df$sslicedepth=="33-34"] = "10+"
+df$sslicedepth[df$sslicedepth=="34-35"] = "10+"
+df$sslicedepth[df$sslicedepth=="35-36"] = "10+"
+df$sslicedepth[df$sslicedepth=="36-37"] = "10+"
+df$sslicedepth[df$sslicedepth=="37-38"] = "10+"
+df$sslicedepth[df$sslicedepth=="38-39"] = "10+"
+df$sslicedepth[df$sslicedepth=="39-40"] = "10+"
+df$sslicedepth[df$sslicedepth=="40-41"] = "10+"
+df$sslicedepth[df$sslicedepth=="41-42"] = "10+"
+df$sslicedepth[df$sslicedepth=="42-43"] = "10+"
+df$sslicedepth[df$sslicedepth=="10-12"] = "10+"
+df$sslicedepth[df$sslicedepth=="10-15"] = "10+"
+df$sslicedepth[df$sslicedepth=="15-20"] = "10+"
+
+df$sslicedepth[df$sslicedepth=="Grab sample"] = "0-5"
+df$sslicedepth[df$sslicedepth=="Full core"]   = "0-5"
+
+## Habitat --> Not needed to do this anymore.
+# df$hhabtype[df$hhabtype=="Deep mud"] = "Shallow mud"
+# df$hhabtype[df$hhabtype=="Shallow sandy mud"] = "Shallow mud"
+# df$hhabtype[df$hhabtype=="Shallow silty sand"] = "Shallow sand"
+# df$hhabtype[df$hhabtype=="Shallow silt"] = "Shallow mud"
+# df$hhabtype[df$hhabtype=="Shallow sand"] = "Sand"
+# df$hhabtype[df$hhabtype=="Shallow mud"] = "Mud"
 
 # Editing individual studies
 
-## Seasons
-df$hseason[40:44] = "summer"   # Ferguson et al. Location=Brisbane, has intermediate seasons in the southern hemisphere
-df$hseason[45:54] = "autumn"   # Ferguson et al. Location=Brisbane, has intermediate seasons in the southern hemisphere
-df$hseason[236:239] = "spring" # Lui et al. Location=Hong Kong, has intermediate seasons
+## Seasons -> Not needed anymore.
+# df$hseason[40:44] = "summer"   # Ferguson et al. Location=Brisbane, has intermediate seasons in the southern hemisphere
+# df$hseason[45:54] = "autumn"   # Ferguson et al. Location=Brisbane, has intermediate seasons in the southern hemisphere
+# df$hseason[236:239] = "spring" # Lui et al. Location=Hong Kong, has intermediate seasons
 
 ## Days since trawling
 df$timetrawldays[df$article_id==19] = 1      #  Rajesh et al 2019
