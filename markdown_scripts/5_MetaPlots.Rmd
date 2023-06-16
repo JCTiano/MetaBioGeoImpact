@@ -1,0 +1,320 @@
+---
+title: "Code for Meta-analysis plots"
+author: "Justin Tiano, Emil De Borger"
+date: '2022-10-06'
+editor_options: 
+  markdown: 
+    wrap: 80
+output:
+  html_document:
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    extra_dependencies: ["float"]
+---
+
+# Introduction
+
+This script is used to make plots from the biogeochemical meta-analysis. 
+It is used in combination with the plotting functions found in 'Plot.functions.R' 
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+require(metafor)
+
+```
+
+# Load data
+
+```{r load data, echo = FALSE, include = FALSE}
+
+source("../source_code/Plot.functions.R")
+# load("../r_objects/Grad.rda")
+load("../r_objects/Grad_24102022.rda")
+GradInfo = df
+load("../r_objects/meta.datnov2022.rda")
+
+```
+
+# Summary Plots
+
+## Short term data < 1d
+
+Without fluxes as these are not calculated well.
+
+```{r summary plot short term data, fig.width = 7, fig.height = 7, warning = FALSE, echo = FALSE}
+
+# Checking what to plot
+# sort(table(short$respvar), decreasing = TRUE)
+
+# pdf("../figures/Summary_shortterm_EF.pdf", width = 8, height = 8)
+
+tpos = -10
+tpos2 = 10
+
+# OC sources
+PlotSum(df = short, "TOC", yhigh = 19, start = T, textpos = tpos, xlow = -14, 
+        subsetname = "Short term", xhigh = 14, row = 18, textpos2 = tpos2)
+PlotSum(df = short, "OM (LOI)"     , row = 17, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = short, "TOC/TN"       , row = 16, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = short, "TN"           , row = 15, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = short, "TC"           , row = 14, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = short, "Chl-a"        , row = 13, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = short, "Phytopigments", row = 12, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = short, "Phaeopigments", row = 11, textpos = tpos, textpos2 = tpos2)
+
+# Sediment parameters
+PlotSum(df = short, "Mean grain size"      , row = 10, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = short, "Mud content (< 63 µm)", row = 9, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = short, "Silt "                , row = 8, textpos = tpos, textpos2 = tpos2)
+
+# BGC measurements
+PlotSum(df = short, "Oxygen flux"   , row = 7, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = short, "SCOC"          , row = 6, textpos = tpos, textpos2 = tpos2)
+# PlotSum(df = short, "NHx flux"      , row = 9 , textpos = tpos, textpos2 = tpos2)  
+# PlotSum(df = short, "Nitrate flux"  , row = 8 , textpos = tpos, textpos2 = tpos2)  
+# PlotSum(df = short, "Phosphate flux", row = 7 , textpos = tpos, textpos2 = tpos2)
+# PlotSum(df = short, "NHx"           , row = 6 , textpos = tpos, textpos2 = tpos2)
+# PlotSum(df = short, "DIC", row = 6, textpos = tpos, textpos2 = tpos2)
+
+PlotSum(df = short, "Carbohydrates"        , row = 5, textpos = tpos, textpos2 = tpos2)  
+PlotSum(df = short, "Lipids"               , row = 4, textpos = tpos, textpos2 = tpos2)  
+PlotSum(df = short, "Proteins"             , row = 3, textpos = tpos, textpos2 = tpos2)  
+PlotSum(df = short, "Biopolymeric C (BPC)" , row = 2, textpos = tpos, textpos2 = tpos2)  
+PlotSum(df = short, "Algal fraction of BPC", row = 1, textpos = tpos, textpos2 = tpos2)  
+
+# dev.off()
+
+```
+
+## Recovery
+
+```{r summary figure recovery dataset, fig.width = 7, fig.height = 7, warning = FALSE, echo = FALSE}
+
+# Checking what to plot
+# sort(table(rec$respvar), decreasing = TRUE)
+# 
+# pdf("../figures/Summary_recovery_EF.pdf", width = 8, height = 8)
+
+tpos = -12
+tpos2 = 11
+
+# OC sources
+PlotSum(df = rec, "TOC", yhigh = 18, start = T, textpos = tpos, xlow = -18,
+        subsetname = "Recovery", xhigh = 14, row = 18, textpos2 = tpos2)
+PlotSum(df = rec, "OM (LOI)"     , row = 17, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = rec, "TOC/TN"       , row = 16, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = rec, "TN"           , row = 15, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = rec, "TC"           , row = 14, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = rec, "Chl-a"        , row = 13, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = rec, "Phytopigments", row = 12, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = rec, "Phaeopigments", row = 11, textpos = tpos, textpos2 = tpos2)
+
+# Sediment parameters
+PlotSum(df = rec, "Mean grain size"      , row = 10, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = rec, "Mud content (< 63 µm)", row = 9, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = rec, "Silt "                , row = 8, textpos = tpos, textpos2 = tpos2)
+
+# BGC measurements
+PlotSum(df = rec, "Oxygen flux"   , row = 7, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = rec, "SCOC"          , row = 6, textpos = tpos, textpos2 = tpos2)
+# PlotSum(df = rec, "NHx flux"      , row = 9 , textpos = tpos, textpos2 = tpos2)  
+# PlotSum(df = rec, "Nitrate flux"  , row = 8 , textpos = tpos, textpos2 = tpos2)  
+# PlotSum(df = rec, "Phosphate flux", row = 7 , textpos = tpos, textpos2 = tpos2)
+# PlotSum(df = rec, "NHx"           , row = 6 , textpos = tpos, textpos2 = tpos2)
+# PlotSum(df = short, "DIC", row = 6, textpos = tpos, textpos2 = tpos2)
+
+PlotSum(df = rec, "Carbohydrates"        , row = 5, textpos = tpos, textpos2 = tpos2)  
+PlotSum(df = rec, "Lipids"               , row = 4, textpos = tpos, textpos2 = tpos2)  
+PlotSum(df = rec, "Proteins"             , row = 3, textpos = tpos, textpos2 = tpos2)  
+PlotSum(df = rec, "Biopolymeric C (BPC)" , row = 2, textpos = tpos, textpos2 = tpos2)  
+PlotSum(df = rec, "Algal fraction of BPC", row = 1, textpos = tpos, textpos2 = tpos2)  
+
+# dev.off()
+
+```
+
+## Comprehensive dataset
+
+```{r Summary figure all data, fig.width = 7, fig.height = 7, warning = FALSE, echo = FALSE}
+
+# Checking what to plot
+# sort(table(all$respvar), decreasing = TRUE)
+# 
+# pdf("../figures/Summary_alldata_EF.pdf", width = 7, height = 7)
+
+tpos = -12
+tpos2 = 11
+
+# OC sources
+PlotSum(df = all, "TOC", yhigh = 18, start = T, textpos = tpos, xlow = -18, 
+        subsetname = "All data", xhigh = 14, row = 18, textpos2 = tpos2)
+PlotSum(df = all, "OM (LOI)"     , row = 17, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = all, "TOC/TN"       , row = 16, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = all, "TN"           , row = 15, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = all, "TC"           , row = 14, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = all, "Chl-a"        , row = 13, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = all, "Phytopigments", row = 12, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = all, "Phaeopigments", row = 11, textpos = tpos, textpos2 = tpos2)
+
+# Sediment parameters
+PlotSum(df = all, "Mean grain size"      , row = 10, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = all, "Mud content (< 63 µm)", row = 9, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = all, "Silt "                , row = 8, textpos = tpos, textpos2 = tpos2)
+
+# BGC measurements
+PlotSum(df = all, "Oxygen flux"   , row = 7, textpos = tpos, textpos2 = tpos2)
+PlotSum(df = all, "SCOC"          , row = 6, textpos = tpos, textpos2 = tpos2)
+# PlotSum(df = all, "NHx flux"      , row = 9 , textpos = tpos, textpos2 = tpos2)  
+# PlotSum(df = all, "Nitrate flux"  , row = 8 , textpos = tpos, textpos2 = tpos2)  
+# PlotSum(df = all, "Phosphate flux", row = 7 , textpos = tpos, textpos2 = tpos2)
+# PlotSum(df = all, "NHx"           , row = 6 , textpos = tpos, textpos2 = tpos2)
+# PlotSum(df = short, "DIC", row = 6, textpos = tpos, textpos2 = tpos2)
+
+PlotSum(df = all, "Carbohydrates"        , row = 5, textpos = tpos, textpos2 = tpos2)  
+PlotSum(df = all, "Lipids"               , row = 4, textpos = tpos, textpos2 = tpos2)  
+PlotSum(df = all, "Proteins"             , row = 3, textpos = tpos, textpos2 = tpos2)  
+PlotSum(df = all, "Biopolymeric C (BPC)" , row = 2, textpos = tpos, textpos2 = tpos2)  
+PlotSum(df = all, "Algal fraction of BPC", row = 1, textpos = tpos, textpos2 = tpos2)  
+
+# dev.off()
+
+```
+
+# Experimental vs. observational
+
+Here, the dataset is split into observational studies and experimental studies, to see if there are consistent differences between both. This appears not the case and so we can use them combined in meta-modelling.
+
+## Short term
+
+-> Where there are enough comparable instances (+ chl a).
+
+```{r comparison experimental and observational short-term studies, fig.width = 10, fig.height = 10, echo = FALSE, warning = FALSE}
+
+# subsetting
+Ex = subset(short, Experimental.observational == "Experimental")
+Ob = subset(short, Experimental.observational == "Observational")
+
+# pdf("../figures/EO_shortterm_studies.pdf", width = 6.69, height = 8.5)
+
+tpos = -17
+tpos2 = 15
+mv = 0.15
+PlotEO(data = Ex, parm="TOC"          , yhigh = 6, textpos = tpos, textpos2 = tpos2, xlow = -20, xhigh = 20, row = 5, mv = mv)
+PlotEO(data = Ex, parm="TN"           , row = 4, start = F, textpos = tpos, textpos2 = tpos2, mv = mv)
+PlotEO(data = Ex, parm="TOC/TN", row = 3, start = F, textpos = tpos, textpos2 = tpos2, mv = mv)  
+PlotEO(data = Ex, parm="water content", row = 2, start = F, textpos = tpos, textpos2 = tpos2, mv = mv)  
+PlotEO(data = Ex, parm="Chl-a"          , row = 1, start = F, textpos = tpos, textpos2 = tpos2, mv = mv)
+
+Col = adjustcolor("red", 0.7)
+mv = -0.15
+tpos = -11
+tpos2 = 15
+PlotEO(data = Ob, parm="TOC"          , yhigh = 6, start = F, textpos = tpos, textpos2 = tpos2, row = 5, mv = mv, lab = F, Col = Col)
+PlotEO(data = Ob, parm="TN"           , row = 4, start = F, textpos = tpos, textpos2 = tpos2, mv = mv, lab = F, Col = Col)
+PlotEO(data = Ob, parm="TOC/TN", row = 3, start = F, textpos = tpos, textpos2 = tpos2, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="Water content", row = 2, start = F, textpos = tpos, textpos2 = tpos2, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="Chl-a"          , row = 1, start = F, textpos = tpos, textpos2 = tpos2, mv = mv, lab = F, Col = Col)
+
+legend("bottomleft", pch = 15, col = c("black", adjustcolor("red", 0.5)),
+       lty = 1,  c("Experimental studies", "Observational Studies"), bty = "n",
+       cex = 0.75)
+
+# dev.off()
+
+```
+
+## All data
+
+```{r comparison experimental and observational all-data studies, fig.width = 10, fig.height = 10, echo = FALSE, warning = FALSE}
+
+# subsetting
+Ex = subset(all, Experimental.observational == "Experimental")
+Ob = subset(all, Experimental.observational == "Observational")
+
+# pdf("../figures/EO_all_studies.pdf", width = 6.69, height = 8.5)
+
+tpos  = -18
+tpos2 = 16
+mv    = 0.15
+PlotEO(data = Ex, parm="TOC"                  , yhigh = 13, textpos = tpos, textpos2 = tpos2, xlow = -22, xhigh = 20, row = 13, mv = mv)
+PlotEO(data = Ex, parm="OM (LOI)"             , row = 12, start = F, textpos = tpos, textpos2 = tpos2, mv = mv)  
+PlotEO(data = Ex, parm="TOC/TN"               , row = 11, start = F, textpos = tpos, textpos2 = tpos2, mv = mv)
+PlotEO(data = Ex, parm="TN"                   , row = 10, start = F, textpos = tpos, textpos2 = tpos2, mv = mv)
+PlotEO(data = Ex, parm="TC"                   , row = 9 , start = F, textpos = tpos, textpos2 = tpos2, mv = mv)  
+PlotEO(data = Ex, parm="Chl-a"                , row = 8 , start = F, textpos = tpos, textpos2 = tpos2, mv = mv)  
+PlotEO(data = Ex, parm="Phytopigments"        , row = 7 , start = F, textpos = tpos, textpos2 = tpos2, mv = mv)  
+PlotEO(data = Ex, parm="Phaeopigments"        , row = 6 , start = F, textpos = tpos, textpos2 = tpos2, mv = mv)  
+PlotEO(data = Ex, parm="Mean grain size"      , row = 5 , start = F, textpos = tpos, textpos2 = tpos2, mv = mv)  
+PlotEO(data = Ex, parm="Mud content (< 63 µm)", row = 4 , start = F, textpos = tpos, textpos2 = tpos2, mv = mv)  
+PlotEO(data = Ex, parm="Silt "                , row = 3 , start = F, textpos = tpos, textpos2 = tpos2, mv = mv)  
+PlotEO(data = Ex, parm="Oxygen flux"          , row = 2 , start = F, textpos = tpos, textpos2 = tpos2, mv = mv)  
+# PlotEO(data = Ex, parm="SCOC"                 , row = 5 , start = F, textpos = tpos, mv = mv)  
+# PlotEO(data = Ex, parm="NHx flux"             , row = 4 , start = F, textpos = tpos, mv = mv)  
+# PlotEO(data = Ex, parm="Nitrate flux"         , row = 3 , start = F, textpos = tpos, mv = mv)  
+# PlotEO(data = Ex, parm="Phosphate flux"       , row = 2 , start = F, textpos = tpos, mv = mv)
+PlotEO(data = Ex, parm="NHx"                  , row = 1 , start = F, textpos = tpos, textpos2 = tpos2, mv = mv)
+
+Col = adjustcolor("red", 0.7)
+mv = -0.15
+tpos = -11
+PlotEO(data = Ob, parm="TOC"                  , yhigh = 13, start = F, textpos = tpos, textpos2 = tpos2, row = 13, mv = mv, lab = F, Col = Col)
+PlotEO(data = Ob, parm="OM (LOI)"             , row = 12, start = F, textpos = tpos, textpos2 = tpos2, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="TOC/TN"               , row = 11, start = F, textpos = tpos, textpos2 = tpos2, mv = mv, lab = F, Col = Col)
+PlotEO(data = Ob, parm="TN"                   , row = 10, start = F, textpos = tpos, textpos2 = tpos2, mv = mv, lab = F, Col = Col)
+PlotEO(data = Ob, parm="TC"                   , row = 9 , start = F, textpos = tpos, textpos2 = tpos2, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="Chl-a"                , row = 8 , start = F, textpos = tpos, textpos2 = tpos2, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="Phytopigments"        , row = 7 , start = F, textpos = tpos, textpos2 = tpos2, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="Phaeopigments"        , row = 6 , start = F, textpos = tpos, textpos2 = tpos2, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="Mean grain size"      , row = 5 , start = F, textpos = tpos, textpos2 = tpos2, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="Mud content (< 63 µm)", row = 4 , start = F, textpos = tpos, textpos2 = tpos2, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="Silt "                , row = 3 , start = F, textpos = tpos, textpos2 = tpos2, mv = mv, lab = F, Col = Col)  
+PlotEO(data = Ob, parm="Oxygen flux"          , row = 2 , start = F, textpos = tpos, textpos2 = tpos2, mv = mv, lab = F, Col = Col)  
+# PlotEO(data = Ob, parm="SCOC"                 , row = 5 , start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+# PlotEO(data = Ob, parm="NHx flux"             , row = 4 , start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+# PlotEO(data = Ob, parm="Nitrate flux"         , row = 3 , start = F, textpos = tpos, mv = mv, lab = F, Col = Col)  
+# PlotEO(data = Ob, parm="Phosphate flux"       , row = 2 , start = F, textpos = tpos, mv = mv, lab = F, Col = Col)
+PlotEO(data = Ob, parm="NHx"                  , row = 1 , start = F, textpos = tpos, textpos2 = tpos2, mv = mv, lab = F, Col = Col)
+
+legend("bottomleft", pch = 15, col = c("black", adjustcolor("red", 0.5)), 
+       lty = 1,  c("Experimental studies", "Observational Studies"), bty = "n",
+       cex = 0.75)
+
+# dev.off()
+
+```
+
+# Gradients vs. short-term observation
+
+- Only a few parameters shown for which there are enough instances to compare.
+- Cohen's D.
+
+```{r, fig.width =7, fig.height = 4, echo = FALSE, warning = FALSE}
+
+# sort(table(GradInfo$Response.variable), decreasing = TRUE)
+# 
+# pdf("../figures/Comparison.pdf", width = 6.69, height = 4.5)
+
+tpos = -12
+tpos2 = 15
+GrPlot("TOC"     , yhigh = 5.5, textpos = tpos, start = T, row = 5, textpos2 = tpos2, xlow = -30, xhigh = 20)
+GrPlot("Mud content (< 63 µm)", textpos = tpos, start = F, row = 4, textpos2 = tpos2)
+GrPlot("OM (LOI)"             , textpos = tpos, start = F, row = 3, textpos2 = tpos2)
+GrPlot("Mean grain size"      , textpos = tpos, start = F, row = 2, textpos2 = tpos2)
+GrPlot("Chl-a"                , textpos = tpos, start = F, row = 1, textpos2 = tpos2)
+
+textpos = -23
+PlotD(df = short, "TOC"                  , row = 5, start = F, textpos = textpos, textpos2 = tpos2)  
+PlotD(df = short, "Mud content (< 63 µm)", row = 4, start = F, textpos = textpos, textpos2 = tpos2)  
+PlotD(df = short, "OM (LOI)"             , row = 3, start = F, textpos = textpos, textpos2 = tpos2)  
+PlotD(df = short, "Mean grain size"      , row = 2, start = F, textpos = textpos, textpos2 = tpos2)
+PlotD(df = short, "Chl-a"                , row = 1, start = F, textpos = textpos, textpos2 = tpos2)  
+legend("bottomleft", pch = 15, col = c("black", adjustcolor("red", 0.5)), lty = 1,  c("Comparative studies", "Gradient Studies"), bty = "n", cex = 0.8)
+
+# dev.off()
+
+```

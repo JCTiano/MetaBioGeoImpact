@@ -1,0 +1,395 @@
+EF---
+title: "Effect size calculation for gradient studies"
+author: "Justin Tiano"
+date: "01/08/2022"
+output: html_document
+---
+
+# Introduction 
+
+This script organizes the meta-analysis data to calculate effect sizes for 
+trawling gradient studies. For this, Fisher Z correlational effect sizes (r) 
+are used and converted to standardized mean difference (Cohn's d). 
+The resulting dataframe is saved as "Grad.rda".
+
+```{r setup, include=FALSE}
+source("../source_code/Functions_for_correlation_input.R") # Functions for r (correlation effect size) calculation and data input
+```
+
+# Load data
+
+```{r}
+df <- read.csv("../dataset/gradient_studies_flatfile.csv")
+names(df)[c(11:47)] = c("Location", "Region", "Longhurst.province","Region.Notes", "article_type_id", "Experimental.observational", 
+                        "Study.type", "study_type.Notes", "Sampling_id", "Core.name", "Sampling.date", "Latitude","Longitude", 
+                        "Water.depth", "Habitat.type","Seasonality", "Notes_site", "Trawled.untrawled", "Before.After", "gear.type", 
+                        "location.Notes", "Reviewer", "Full.core.Slices","Sample.core.depth.slice", "Response.variable", "Response.value", 
+                        "Error.estimate", "Response.unit", "Error.estimate.type","replicates", "Figure.Table.of.the.article", 
+                        "variables.Notes", "Covariate", "covariates.Value", "covariates.Error", "covariates.Unit", "covariates.Notes")
+
+# # Fix names (first parts can be removed ???)
+# df$Trawled.untrawled[df$Trawled.untrawled=="untrawled"] = "Untrawled"
+# df$Trawled.untrawled[df$Trawled.untrawled=="trawled"] = "Trawled"
+# df$Trawled.untrawled[df$Trawled.untrawled=="trawled "] = "Trawled"
+# df$Trawled.untrawled[df$Trawled.untrawled=="before "] = "Before"
+# df$Trawled.untrawled[df$Trawled.untrawled=="after"] = "After"
+df$Response.variable[df$Response.variable=="Phaeophytin-a"] = "Phaeopigments"
+```
+
+# Calculating Fishers Z for individual trawling gradient studies
+
+### Lamarque et al 2021
+```{r}
+study = subset(df, df$First.author=="Lamarque B.")
+
+# Fishing intensity = units calculated from study
+x1 = plotR(data = study, Funit = "h/km2/y", var = "TOC", plot = F)                   
+x2 = plotR(data = study, Funit = "h/km2/y", var = "Mean grain size", plot = F)       
+x3 = plotR(data = study, Funit = "h/km2/y", var = "Chl-a", plot = F)                 
+x4 = plotR(data = study, Funit = "h/km2/y", var = "Phaeopigments", plot = F)         
+
+dat = rbind(x1, x2, x3, x4)
+dat = dat[,c("var", "r", "n", "V", "SEz")]
+tt = Input2 (ID = study, rows = 4)
+G1 = cbind(tt,dat, study = rep("G1", nrow(dat)))
+```
+
+### McLaverty et al 2021 
+```{r}
+study = subset(df, df$article_id==10)
+
+# Fishing intensity = units from study "Nr. trawled yr-1"
+x1 = plotR(data = study, Funit = "yr-1", var = "TOC", plot = F)                     
+x2 = plotR(data = study, Funit = "yr-1", var = "Silt  ", plot = F)                  
+x3 = plotR(data = study, Funit = "yr-1", var = "Sand", plot = F)                    
+x4 = plotR(data = study, Funit = "yr-1", var = "gravel", plot = F)                  
+
+# input values into dataframe 
+dat = rbind(x1, x2, x3, x4)
+dat = dat[,c("var", "r", "n", "V", "SEz")]
+tt = Input2 (ID = study, rows = 4)
+G2 = cbind(tt,dat, study = rep("G2", nrow(dat)))
+```
+
+### McLaverty et al 2019 
+```{r}
+study = subset(df, df$article_id==13)
+
+# Fishing intensity = units from study "Nr. trawled yr-1"
+x1 = plotR(data = study, Funit = "yr-1", var = "Mud content (< 63 µm)", plot = F)   
+x2 = plotR(data = study, Funit = "yr-1", var = "OM (LOI)", plot = F)                
+
+# input values into dataframe 
+dat = rbind(x1, x2)
+dat = dat[,c("var", "r", "n", "V", "SEz")]
+tt = Input2 (ID = study, rows = 2)
+G3 = cbind(tt,dat, study = rep("G3", nrow(dat)))
+```
+
+### Ramalho et al 2018
+```{r}
+study = subset(df, df$article_id==28)
+
+# Fishing intensity = Global fishing watch data
+x1 = plotR(data = study, Funit = "hours/km2", var = "Mud content (< 63 µm)", plot = F) 
+x2 = plotR(data = study, Funit = "hours/km2", var = "TOC", plot = F)                   
+x3 = plotR(data = study, Funit = "hours/km2", var = "TN", plot = F)                    
+x4 = plotR(data = study, Funit = "hours/km2", var = "TOC/TN", plot = F)                
+
+# input values into dataframe 
+dat = rbind(x1, x2, x3, x4)
+dat = dat[,c("var", "r", "n", "V", "SEz")]
+tt = Input2 (ID = study, rows = 4)
+G4 = cbind(tt,dat, study = rep("G4", nrow(dat)))
+```
+
+### Sciberras et al 2017
+```{r}
+study = subset(df, df$article_id==38)
+
+# Fishing intensity = units from study "Nr. trawled yr-1"
+Fishingunit = "yr-1"
+x1 = plotR(data = study, Funit = Fishingunit, var = "Mud content (< 63 µm)", plot = F) 
+x2 = plotR(data = study, Funit = Fishingunit, var = "OM (LOI)", plot = F)              
+x3 = plotR(data = study, Funit = Fishingunit, var = "Sand", plot = F)                  
+
+# input values into dataframe 
+dat = rbind(x1, x2, x3)
+dat = dat[,c("var", "r", "n", "V", "SEz")]
+tt = Input2 (ID = study, rows = 3)
+G5 = cbind(tt,dat, study = rep("G5", nrow(dat)))
+```
+
+### Rosli et al 2016
+```{r}
+study = subset(df, df$article_id==41)
+# corrections to the data
+study$Location[study$Core.name=="4_4"] = "Hikurangi margin"
+study$Location[study$Core.name=="10_6"] = "Hikurangi margin"
+study$Location[study$Core.name=="12_3"] = "Hikurangi margin"
+study$Location[study$Core.name=="17_3"] = "Hikurangi margin"
+study$Location[study$Core.name=="17_8"] = "Hikurangi margin"
+study$Location[study$Core.name=="19_3"] = "Hikurangi margin"
+study$Location[study$Core.name=="22_1"] = "Hikurangi margin"
+study$Location[study$Core.name=="27_4"] = "Hikurangi margin"
+study$Location[study$Core.name=="31_1"] = "Hikurangi margin"
+study$Location[study$Core.name=="38_2"] = "Hikurangi margin"
+study$Location[study$Core.name=="41_1"] = "Hikurangi margin"
+study$Location[study$Core.name=="44_4"] = "Hikurangi margin"
+study$Location[study$Core.name=="53_3"] = "Hikurangi margin"
+study$Location[study$Core.name=="58_3"] = "Hikurangi margin"
+study$Location[study$Core.name=="62_6"] = "Hikurangi margin"
+study$Location[study$Core.name=="69_1"] = "Hikurangi margin"
+study$Location[study$Core.name=="72_1"] = "Hikurangi margin"
+study$Location[study$Core.name=="76_4"] = "Hikurangi margin"
+study$Location[study$Core.name=="92_2"] = "Hikurangi margin"
+study$Location[study$Core.name=="97_1"] = "Hikurangi margin"
+study$Location[study$Core.name=="124_4"] = "Hikurangi margin"
+study$Location[study$Core.name=="126_1"] = "Hikurangi margin"
+study$Location[study$Core.name=="127_3"] = "Hikurangi margin"
+study$Location[study$Core.name=="128_3"] = "Hikurangi margin"
+study$Location[study$Core.name=="129_6"] = "Hikurangi margin"
+study$Location[study$Core.name=="130_4"] = "Hikurangi margin"
+study$Location[study$Core.name=="132_1"] = "Hikurangi margin"
+
+BP = subset(study,study$Location=="Bay of Plenty")
+HM = subset(study,study$Location=="Hikurangi margin")
+vars = unique(study$Response.variable)
+
+# Fishing intensity = units from study "number of tows in grid cell from 10 years prior to sampling "
+  Fishingunit = "number of tows in grid cell from 10 years prior to sampling "
+
+# Bay of Plenty
+x1 = plotR(data = BP, Funit = Fishingunit, var = vars[1], plot = F) # "Chl-a"
+#x2 = plotR(data = BP, Funit = Fishingunit, var = vars[4]) # "Mean grain size
+x3 = plotR(data = BP, Funit = Fishingunit, var = vars[5], plot = F) # "OM (LOI)"
+x4 = plotR(data = BP, Funit = Fishingunit, var = vars[6], plot = F) # "TOC"
+x5 = plotR(data = BP, Funit = Fishingunit, var = vars[7], plot = F) # "Phaeophytin"
+
+# Hikurangi margin
+h1 = plotR(data = HM, Funit = Fishingunit, var = vars[1], plot = F) # "Chl-a"
+h2 = plotR(data = HM, Funit = Fishingunit, var = vars[4], plot = F) # "Mean grain size
+h3 = plotR(data = HM, Funit = Fishingunit, var = vars[5], plot = F) # "OM (LOI)"
+h4 = plotR(data = HM, Funit = Fishingunit, var = vars[6], plot = F) # "TOC"
+h5 = plotR(data = HM, Funit = Fishingunit, var = vars[7], plot = F) # "Phaeophytin" * 
+
+# input values into dataframe 
+dat = rbind(x1, x3, x4, x5)
+dat = dat[,c("var", "r", "n", "V", "SEz")]
+tt = Input2 (ID = study, rows =  nrow(dat))
+G6a = cbind(tt,dat, study = rep("G6a", nrow(dat)))
+
+# input values into dataframe 
+dat = rbind(h1, h2, h3, h4, h5)
+dat = dat[,c("var", "r", "n", "V", "SEz")]
+tt = Input2 (ID = study, rows = nrow(dat))
+G6b = cbind(tt,dat, study = rep("G6b", nrow(dat)))
+
+G6 = rbind(G6a, G6b)
+```
+
+### Hale et al 2016 
+```{r}
+study = subset(df, df$article_id==49)
+vars = unique(study$Response.variable)
+
+# Fishing intensity = units from study "Nr. trawled yr-1"
+Fishingunit = "yr-1"
+
+mud = subset(study, study$Habitat.type=="Shallow, cohesive sediment")
+x1 = plotR(data = study, Funit = Fishingunit, var = vars[8], plot = F) # "Carbohydrates"
+x2 = plotR(data = study, Funit = Fishingunit, var = vars[9], plot = F) # "OM (LOI)"
+x3 = plotR(data = study, Funit = Fishingunit, var = vars[10], plot = F) # "TOC"
+x4 = plotR(data = study, Funit = Fishingunit, var = vars[12], plot = F) # "Mean grain size"
+x5 = plotR(data = study, Funit = Fishingunit, var = vars[15], plot = F) # "Mud content (< 63 µm)" 
+
+# input values into dataframe 
+dat = rbind(x1, x2, x3, x4, x5)
+dat = dat[,c("var", "r", "n", "V", "SEz")]
+tt = Input2 (ID = study, rows =  nrow(dat))
+G7a = cbind(tt,dat, study = rep("G7a", nrow(dat)))
+
+sand = subset(study, study$Habitat.type=="Shallow, cohesive sediment")
+x1 = plotR(data = study, Funit = Fishingunit, var = vars[8], plot = F) # "Carbohydrates"
+x2 = plotR(data = study, Funit = Fishingunit, var = vars[9], plot = F) # "OM (LOI)"
+x3 = plotR(data = study, Funit = Fishingunit, var = vars[10], plot = F) # "TOC"
+x4 = plotR(data = study, Funit = Fishingunit, var = vars[12], plot = F) # "Mean grain size"
+x5 = plotR(data = study, Funit = Fishingunit, var = vars[15], plot = F) # "Mud content (< 63 µm)" 
+
+# input values into dataframe 
+dat = rbind(x1, x2, x3, x4, x5)
+dat = dat[,c("var", "r", "n", "V", "SEz")]
+tt = Input2 (ID = study, rows = nrow(dat))
+G7b = cbind(tt,dat, study = rep("G7b", nrow(dat)))
+
+G7 = rbind(G7a, G7b)
+```
+
+### Sciberras et al 2016 
+```{r}
+study = subset(df, df$article_id==53)
+vars = unique(study$Response.variable)
+mud = subset(study, study$Habitat.type=="Shallow muddy")
+sand  = subset(study, study$Habitat.type=="Shallow sandy")
+
+# Fishing intensity = units from study "Nr. trawled yr-1"
+Fishingunit = "yr-1"
+# Sand
+x1 = plotR(data = sand, Funit = Fishingunit, var = vars[8], plot = F) # "Sand"
+x2 = plotR(data = sand, Funit = Fishingunit, var = vars[9], plot = F) # "Mud content (< 63 µm)"
+#x3 = plotR(data = sand, Funit = Fishingunit, var = vars[10]) # "Chl - a" 
+x4 = plotR(data = sand, Funit = Fishingunit, var = vars[11], plot = F) # "TN"
+x5 = plotR(data = sand, Funit = Fishingunit, var = vars[12], plot = F) # "TOC"
+# input values into dataframe 
+dat = rbind(x1, x2 , x4, x5)
+dat = dat[,c("var", "r", "n", "V", "SEz")]
+tt = Input2 (ID = study, rows = nrow(dat))
+G8a = cbind(tt,dat, study = rep("G8a", nrow(dat)))
+
+# Mud
+x1 = plotR(data = mud, Funit = Fishingunit, var = vars[8], plot = F) # "Sand"
+x2 = plotR(data = mud, Funit = Fishingunit, var = vars[9], plot = F) # "Mud content (< 63 µm)"
+x3 = plotR(data = mud, Funit = Fishingunit, var = vars[10], plot = F) # "Chl - a" 
+x4 = plotR(data = mud, Funit = Fishingunit, var = vars[11], plot = F) # "TN"
+x5 = plotR(data = mud, Funit = Fishingunit, var = vars[12], plot = F) # "TOC"
+
+# input values into dataframe 
+dat = rbind(x1, x2, x3, x4, x5)
+dat = dat[,c("var", "r", "n", "V", "SEz")]
+tt = Input2 (ID = study, rows = nrow(dat))
+G8b = cbind(tt,dat, study = rep("G8b", nrow(dat)))
+
+G8 = rbind(G8a, G8b)
+```
+
+### Muntadas A. et al 2015
+```{r}
+study = subset(df, df$article_id==59)
+vars = unique(study$Response.variable)
+# correcting data
+study$replicates = 1 # assuming 1 replicate for all samples
+
+# Fishing intensity = "trawl tracks density/km2"
+Fishingunit = "trawl tracks density/km2"
+x1 = plotR(data = study, Funit = Fishingunit, var = vars[2], plot = F) # "Sand" 
+x2 = plotR(data = study, Funit = Fishingunit, var = vars[3], plot = F) # "Mud content (< 63 µm)" 
+x3 = plotR(data = study, Funit = Fishingunit, var = vars[4], plot = F) # "Mean grain size" 
+x4 = plotR(data = study, Funit = Fishingunit, var = vars[5], plot = F) # "TOC" 
+x5 = plotR(data = study, Funit = Fishingunit, var = vars[6], plot = F) # "TC"
+
+# input values into dataframe 
+dat = rbind(x1, x2, x3, x4, x5)
+dat = dat[,c("var", "r", "n", "V", "SEz")]
+tt = Input2 (ID = study, rows = nrow(dat))
+G9 = cbind(tt,dat, study = rep("G9", nrow(dat)))
+```
+
+### Atkinson L.J. et al 2011
+```{r}
+study = subset(df, df$article_id==89)
+vars = unique(study$Response.variable)
+
+# Fishing intensity
+  Fishingunit = "yr-1"
+x1 = plotR(data = study, Funit = Fishingunit, var = vars[1], plot = F) # "Sand" 
+x2 = plotR(data = study, Funit = Fishingunit, var = vars[2], plot = F) # "TOC"
+
+# input values into dataframe 
+dat = rbind(x1, x2)
+dat = dat[,c("var", "r", "n", "V", "SEz")]
+tt = Input2 (ID = study, rows = nrow(dat))
+G10 = cbind(tt,dat, study = rep("G10", nrow(dat)))
+
+```
+
+### Trimmer M. et al 2005
+```{r}
+study = subset(df, df$article_id==136)
+vars = unique(study$Response.variable)
+
+# Fishing intensity: from study
+  Fishingunit = "vessels/km2"
+x1 = plotR(data = study, Funit = Fishingunit, var = vars[4], plot = F) # "Mud content (< 63 µm)"***
+x2 = plotR(data = study, Funit = Fishingunit, var = vars[5], plot = F) # "Nitrate flux"
+x3 = plotR(data = study, Funit = Fishingunit, var = vars[7], plot = F) # "OM (LOI)"
+x4 = plotR(data = study, Funit = Fishingunit, var = vars[8], plot = F) # "Oxygen flux"
+x5 = plotR(data = study, Funit = Fishingunit, var = vars[9], plot = F) # "Sand" ***
+
+# input values into dataframe 
+dat = rbind(x1, x2, x3, x4, x5)
+dat = dat[,c("var", "r", "n", "V", "SEz")]
+tt = Input2 (ID = study, rows = nrow(dat))
+G11 = cbind(tt,dat, study = rep("G11", nrow(dat)))
+```
+
+### Stone R. et al 2003
+```{r}
+study = subset(df, df$article_id==152)
+vars = unique(study$Response.variable)
+
+# Fishing intensity:
+  Fishingunit = "% of seafloor/year"
+x1 = plotR(data = study, Funit = Fishingunit, var = vars[1], plot = F) # "Mean grain size"
+x2 = plotR(data = study, Funit = Fishingunit, var = vars[3], plot = F) # "TOC"
+
+# input values into dataframe 
+dat = rbind(x1, x2)
+dat = dat[,c("var", "r", "n", "V", "SEz")]
+tt = Input2 (ID = study, rows = nrow(dat))
+G12 = cbind(tt,dat, study = rep("G12", nrow(dat)))
+```
+
+### Eleftherou et al., 1992
+```{r}
+study = subset(df, df$article_id==183)
+vars = unique(study$Response.variable)
+
+# Fishing intensity:
+  Fishingunit = "Trawling effort_numerical"
+x1 = plotR(data = study, Funit = Fishingunit, var = vars[1], plot = F) # "TOC"
+x2 = plotR(data = study, Funit = Fishingunit, var = vars[3], plot = F) # "Chl-a"
+x3 = plotR(data = study, Funit = Fishingunit, var = vars[3], plot = F) # "Mean grain size"
+
+# input values into dataframe 
+dat = rbind(x1, x2, x3)
+dat = dat[,c("var", "r", "n", "V", "SEz")]
+tt = Input2 (ID = study, rows = nrow(dat))
+G13 = cbind(tt,dat, study = rep("G13", nrow(dat)))
+
+```
+
+### Wang et al., 2021
+```{r}
+study = subset(df, df$article_id==3)
+vars = unique(study$Response.variable)
+
+# Fishing intensity:
+  Fishingunit = "hours/km2"
+x1 = plotR(data = study, Funit = Fishingunit, var = vars[1], plot = F) # "OM (LOI)"
+x2 = plotR(data = study, Funit = Fishingunit, var = vars[8], plot = F) # "Mud content (<63 um)"
+
+# input values into dataframe 
+dat = rbind(x1, x2)
+dat = dat[,c("var", "r", "n", "V", "SEz")]
+tt = Input2 (ID = study, rows = nrow(dat))
+G14 = cbind(tt,dat, study = rep("G14", nrow(dat)))
+
+```
+
+# Combining data from all trawl gradient studies into one data frame. 
+ - Fishers Z effect sizes are converted to standardized mean differences (Cohen's d) to compare with observational and experimental studies
+ - The resulting dataframe is saved for further analysis
+
+```{r}
+GradInfo =  rbind(G1,G2,G3, G4, G5, G6, G7, G8, G9, G10, G11, G12, G13, G14)
+colnames(GradInfo)[10] = "Response.variable"
+
+df = GradInfo
+
+# Converting Fishers Z (r) to Standardized mean difference (Cohen's d)
+df$d = 2 * df$r / (sqrt(1 - df$r^2))
+df$Vd = 4 * df$V / (1 - df$r^2)^3
+df$Vd[df$Vd==Inf]=NA  
+
+save(file = "../r_objects/Grad_24102022.rda", df)
+```

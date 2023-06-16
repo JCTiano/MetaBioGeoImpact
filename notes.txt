@@ -1,0 +1,14 @@
+
+SCRIPT 1
+- Where SD's are missing we either
+	- Calculate the missing value based on known values as prescribed (of same variable and study type).
+	- Give 0 value if n = 1
+
+SCRIPT 2
+- I remove certain rows where no SD / Mean value is even found --> mainly "Excess Pb" and "Excess Th"
+- Then I remove rows where NaN is produced 
+	- response 1 = 0 and response 2 = 0, mostly "Gravel" from study 2, 20, 23, 69, 154.
+	- Change of sign, e.g. for some fluxes ==> I suggest we don't use them.
+- Change Infinities to NA
+	- x/0 or 0/x, again studies 5, 20, 69.
+	- Again excess Pb and Th, sand, gravel.
