@@ -1,0 +1,105 @@
+---
+title: "Gradient plots"
+author: "Justin Tiano"
+date: '2023-06-07'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load data
+```{r}
+load("Grad_new.rda")
+GradInfo = df
+```
+
+Load data
+```{r}
+source("Plot.functions3.R")
+
+load("../r_objects/Grad.rda")
+load("Grad_new.rda")
+GradInfo = df
+```
+
+
+# Box plot of raw data
+
+```{r}
+par(mar = c(4,5,2,4))
+plot(NA, xlim = c(-1,1), ylim = c(0,5), ylab = "", axes = F, xlab = "Fishers Z", main = " (n = 29)")
+boxplot(df$r[df$Response.variable=="TN"],
+        df$r[df$Response.variable=="OM (LOI)"],
+        df$r[df$Response.variable=="Chl-a"], 
+        df$r[df$Response.variable=="TOC"], 
+        boxlwd = 2, whisklty=1, whisklwd=2, staplewex=0,lwd = 2, boxwex = 0.75,
+        outline = TRUE, ylim = c(-1,1),
+        horizontal = TRUE, add = TRUE
+        )
+abline(v = 0, lwd = 2)
+axis(2, at = 4:1, labels = c("TOC", "Chl-a", "OM (LOI)", "TN"), las = 1)
+axis(4, at = 4:1, labels = c("n=13", "n=4", "n=9", "n=3"), las = 1)
+```
+
+
+## Standardized mean difference (Cohn's d) comparison
+* Only immediate effects
+```{r, fig.width =7, fig.height = 4, warning = F}
+#setwd("~/GitHub/Metastudy/Figures")
+
+#pdf("Comparison.pdf", width = 6.69, height = 4.5)
+tpos = -17
+tpos2 = 15
+GrPlot("TOC", yhigh = 4.5, textpos = tpos, xlow = -26, xhigh = 20, start = T, row = 4, textpos2 = tpos2)
+GrPlot("Chl-a", textpos = tpos, start = F, row  = 3, textpos2 = tpos2)
+GrPlot("OM (LOI)", textpos = tpos, start = F, row  = 2, textpos2 = tpos2)
+GrPlot("TN", textpos = tpos, start = F, row  = 1, textpos2 = tpos2)
+textpos = -23
+#dev.off()
+```
+
+Function for summary effect size Standardized Mean Difference
+
+```{r}
+Graddat = function(parm="TOC") {
+  
+  tt = subset(GradInfo, GradInfo$Response.variable==parm )   # specify response variable 
+  DF = nrow(tt) - 1     # degrees of freedom for 'studies'(comparisons) that can be used
+
+  # Calculations for standardized mean difference (SMD)
+  ll = rma(yi = tt$d, vi = tt$Vd)                           # Use rma function to get tau^2 and other values
+  T2 = ll$tau2
+  tt$WRand = 1/tt$W + T2      # Weight = 1/variance within + variance between studies
+  tt$WYRand = tt$WRand * tt$d
+  
+  M  = round((sum(tt$WYRand, na.rm = T)/sum(tt$WRand, na.rm = T)), digits = 2) # summary EF calculation
+  Vm = 1/(sum(tt$WRand, na.rm = T))                          # variance
+  SD = sd(tt$g, na.rm = T)                                   # Standard deviation of Cohen's d in subset
+  SE = sqrt(Vm)
+  LL = round(M - 1.96 * SE, digits = 2)
+  UL = round(M + 1.96 * SE, digits = 2)
+  
+  dat = cbind.data.frame(M = M, 
+                         V = Vm, 
+                         LowerBound = LL, UpperBound = UL, 
+                         Observations = DF+1, 
+                         Studies = length(unique(tt$article_id)))
+  return(dat)}
+
+# Summary effect size dataframe
+sumData = rbind(Graddat(), Graddat("Chl-a"), Graddat("OM (LOI)"), Graddat("TN"))
+
+save(sumData, file = "../SummaryEF_Gradients.Rda")
+
+gradplot <- data.frame(v = c("TOC", "Chl-a", "OM (LOI)", "TN"), M = sumData$M, LL = sumData$LowerBound, UL = sumData$UpperBound, pval = NA, n = sumData$Observations, s = sumData$Studies)
+
+gradplot$estimate_lab <- paste0(gradplot$M, " [", gradplot$LL, " - ", gradplot$UL, "]")
+gradplot$ns           <- paste0(gradplot$n, " (", gradplot$s, ")")
+
+```
+
+```{r}
+load("SummaryEF_Gradients.Rda")
+```

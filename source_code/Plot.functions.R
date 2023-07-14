@@ -387,6 +387,11 @@ plotdepthslices <- function(var, model, avgdf, maintitle, miny, maxy, textpos){
 
 # 9. Contvarplot + helper
 
+resp = "TOC"
+depvar = "watdepth"
+df = dfshort
+xlabz = "Water depth"
+
 ct <- function(x){return(length(which(x > 0)))}
 
 contvarplot <- function(resp, depvar, df, xlabz, log = FALSE) {
@@ -409,6 +414,8 @@ contvarplot <- function(resp, depvar, df, xlabz, log = FALSE) {
   
   res <- rma.mv(yi = lnRR, V = VarLnRR, mods = ~depths*name, random = ~ 1|article_type_id, data = sub2, method = "REML")
   
+  outdf <- NULL
+  
   for(i in 1:length(names(lengths))){
     
     sub3  <- subset(sub2, depths == names(lengths)[i])
@@ -419,25 +426,41 @@ contvarplot <- function(resp, depvar, df, xlabz, log = FALSE) {
       name2 <- sub3[,depvar]    
     }
     
-    mod   <- rma.mv(yi = lnRR, V = VarLnRR, mods = ~name2, random = ~ 1|article_type_id, data = sub3, method = "REML")
+    mod   <- rma.mv(yi = lnRR, V = VarLnRR, mods = ~name2, random = ~ 1|article_type_id, data = sub3, method = "REML", control=list(rel.tol=1e-8))
+# 
+#     pint  <- mod$pval[1]
+#     pcont <- mod$pval[2]
+#     coeff <- mod$b[2]
+# 
+#     regplot(x = mod,
+#             shade = mycol2, bg = mycol,
+#             xlab = xlabz, ylab = "lnRR", main = names(lengths)[i],
+#             cex.axis = 0.7)
+#     abline(h = 0, col = "darkgrey")
+# 
+#     mtext(side = 3, text = paste0("Sig. intercept = ", round(pint, 4)), line = -1.5, adj = 0.05, cex = 0.7)
+#     mtext(side = 3, text = paste0("Sig. var. = ", round(pcont, 4)), line = -2.5, adj = 0.05, cex = 0.7)
+#     mtext(side = 3, text = paste0("Coeff. var. = ", round(coeff, 2)), line = -3.5, adj = 0.05, cex = 0.7)
+
+    newmodinf <- data.frame("Var" = resp,
+                            "Covar" = xlabz,
+                            "Strata" = names(lengths)[i],
+                            "QE" = mod$QE,
+                            "QM" = mod$QM,
+                            "QEp" = mod$QEp,
+                            "QMp" = mod$QMp,
+                            "int_est" = mod$b[1],
+                            "int_sig" = mod$pval[1],
+                            "coeff_est" = mod$b[2],
+                            "coeff_sig" = mod$pval[2]
+                            )
     
-    pint  <- mod$pval[1]
-    pcont <- mod$pval[2]
-    coeff <- mod$b[2]
+    outdf <- rbind(outdf, newmodinf)
     
-    regplot(x = mod, 
-            shade = mycol2, bg = mycol,
-            xlab = xlabz, ylab = "lnRR", main = names(lengths)[i],
-            cex.axis = 0.7)
-    abline(h = 0, col = "darkgrey")
-    
-    mtext(side = 3, text = paste0("Sig. intercept = ", round(pint, 4)), line = -1.5, adj = 0.05, cex = 0.7)
-    mtext(side = 3, text = paste0("Sig. var. = ", round(pcont, 4)), line = -2.5, adj = 0.05, cex = 0.7)
-    mtext(side = 3, text = paste0("Coeff. var. = ", round(coeff, 2)), line = -3.5, adj = 0.05, cex = 0.7)
     
   }
   
-  return(res)
+  return(outdf)
   
 }
 
@@ -509,4 +532,25 @@ theme_agile2 <- function(base_size = 11, base_family = "Arial", lines_lwd = 0.50
       strip.text.x = ggplot2::element_text(size = base_size + 1),
       strip.text.y = ggplot2::element_text(size = base_size + 1)
     )
+}
+
+# 11. Model fit - table
+## Fits all models and returns a table
+modTab <- function(model, var) {
+  
+  estims <- model[["beta"]]
+  se <- model[["se"]]
+  pval <- model[["pval"]]
+  confintlb <- model[["ci.lb"]]
+  confintub <- model[["ci.ub"]]
+  names <- dimnames(model[["beta"]])[[1]]
+  
+  dfnew <- data.frame("Variable" = var                ,
+                      "Strata"   = names              ,
+                      "Estimate" = round(estims, 3)   ,
+                      "SE"       = round(se, 3)       ,
+                      "p-value"  = round(pval, 4)     ,
+                      "CI-lb"    = round(confintlb, 3),
+                      "CI-ub"    = round(confintub, 3))
+  return(dfnew)
 }

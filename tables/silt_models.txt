@@ -1,0 +1,11 @@
+Var,Covar,Strata,QE,QM,QEp,QMp,int_est,int_sig,coeff_est,coeff_sig
+Silt,Current velocity,Surface,25.005,0.323,0,0.57,-0.303,0.357,2.216,0.57
+Silt,Current velocity,Subsurface,20.368,2.37,0.001,0.124,-0.652,0.094,10.117,0.124
+Silt,Water depth,Surface,25.336,0.358,0,0.55,-0.228,0.298,0,0.55
+Silt,Water depth,Subsurface,6.774,0.001,0.238,0.975,-0.017,0.973,0,0.975
+Silt,Primary productivity,Surface,10.939,7.726,0.09,0.005,0.219,0.13,-53.005,0.005
+Silt,Primary productivity,Subsurface,3.866,0.429,0.569,0.513,0.332,0.609,-53.856,0.513
+Silt,Season,Surface,8.288,8.289,0.141,0.016,0.003,0.979,-0.019,0.909
+Silt,Season,Subsurface,0.386,22.644,0.984,0,-0.017,0.799,0.519,0.17
+Silt,habitat,Surface,25.599,0.277,0,0.598,-0.205,0.324,0.189,0.598
+Silt,habitat,Subsurface,25.025,2.019,0,0.155,-0.219,0.279,0.721,0.155

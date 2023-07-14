@@ -1,0 +1,21 @@
+Var,Covar,Strata,QE,QM,QEp,QMp,int_est,int_sig,coeff_est,coeff_sig
+Phytopigments,log (timesincetrawl),Surface,137.033,3.488,0,0.062,-0.189,0.49,0.061,0.062
+Phytopigments,log (timesincetrawl),Subsurface,55.454,7.739,0,0.005,-0.325,0.011,0.09,0.005
+Phytopigments,trawling effort,Surface,114.715,0.065,0,0.799,-0.356,0.135,0.001,0.799
+Phytopigments,trawling effort,Subsurface,90.378,2.781,0,0.095,-0.149,0.525,-0.008,0.095
+Phytopigments,trawling effort,Deep,3.458,25.493,0.75,0,0.152,0.005,-0.009,0
+Phytopigments,Current velocity,Surface,132.939,0.018,0,0.893,-0.071,0.853,-0.609,0.893
+Phytopigments,Current velocity,Subsurface,117.803,0.578,0,0.447,-0.677,0.171,3.787,0.447
+Phytopigments,Current velocity,Deep,3.923,23.548,0.687,0,-1.197,0,9.332,0
+Phytopigments,Water depth,Surface,160.753,0.016,0,0.898,-0.097,0.646,0,0.898
+Phytopigments,Water depth,Subsurface,114.998,6.052,0,0.014,-0.088,0.525,-0.001,0.014
+Phytopigments,Water depth,Deep,2.878,26.073,0.824,0,0.126,0.014,-0.002,0
+Phytopigments,Primary productivity,Surface,51.029,7.379,0,0.007,0.111,0.48,-10.686,0.007
+Phytopigments,Primary productivity,Subsurface,121.628,0.33,0,0.566,-0.463,0.131,13.634,0.566
+Phytopigments,Primary productivity,Deep,3.917,23.605,0.688,0,-0.83,0,45.977,0
+Phytopigments,Season,Surface,148.654,1.407,0,0.704,-0.227,0.271,0.12,0.361
+Phytopigments,Season,Subsurface,131.716,12.623,0,0.006,-0.477,0.019,0.032,0.809
+Phytopigments,Season,Deep,18.438,0.005,0.005,0.943,-0.212,0.486,0.013,0.943
+Phytopigments,habitat,Surface,155.395,0.063,0,0.802,-0.156,0.532,0.088,0.802
+Phytopigments,habitat,Subsurface,144.227,1.34,0,0.247,-0.543,0.04,0.375,0.247
+Phytopigments,habitat,Deep,3.76,25.055,0.709,0,-0.804,0,0.896,0

@@ -1,0 +1,27 @@
+Var,Covar,Strata,QE,QM,QEp,QMp,int_est,int_sig,coeff_est,coeff_sig
+TN,log (timesincetrawl),Surface,9.99,2.348,0.617,0.125,-0.039,0.609,-0.092,0.125
+TN,log (timesincetrawl),Subsurface,2.739,4.128,0.841,0.042,-0.12,0.108,0.051,0.042
+TN,log (timesincetrawl),Full sample,39.035,0.05,0,0.823,0.117,0.515,-0.04,0.823
+TN,trawling effort,Surface,12.34,2.011,0.5,0.156,-0.123,0.022,-0.001,0.156
+TN,trawling effort,Subsurface,8.518,1.901,0.483,0.168,0.067,0.571,-0.003,0.168
+TN,trawling effort,Full sample,1.202,0.062,0.977,0.804,0.414,0.718,-0.043,0.804
+TN,Current velocity,Surface,13.561,3.123,0.809,0.077,-0.28,0,1.676,0.077
+TN,Current velocity,Subsurface,9.007,15.417,0.913,0,-0.529,0,6.614,0
+TN,Current velocity,Deep,1.773,26.274,0.987,0,-1.214,0,21.684,0
+TN,Current velocity,Very deep,5.024,1.397,0.755,0.237,-0.705,0.154,13.589,0.237
+TN,Current velocity,Full sample,11.357,0.636,0.658,0.425,-0.246,0.573,1.76,0.425
+TN,Water depth,Surface,11.374,5.311,0.936,0.021,-0.079,0.082,0,0.021
+TN,Water depth,Subsurface,21.123,1.742,0.174,0.187,0.07,0.542,-0.001,0.187
+TN,Water depth,Deep,1.775,26.255,0.987,0,0.277,0.006,-0.001,0
+TN,Water depth,Very deep,5.024,1.396,0.755,0.237,0.228,0.446,-0.001,0.237
+TN,Water depth,Full sample,39.025,0.045,0,0.833,0.198,0.703,-0.006,0.833
+TN,Primary productivity,Surface,14.459,2.203,0.756,0.138,-0.206,0,11.606,0.138
+TN,Primary productivity,Subsurface,10.053,13.571,0.864,0,-0.257,0,43.537,0
+TN,Primary productivity,Deep,1.734,26.305,0.988,0,-0.435,0,224.566,0
+TN,Primary productivity,Very deep,5.01,1.41,0.756,0.235,-0.218,0.016,141.261,0.235
+TN,Primary productivity,Full sample,7.935,31.159,0.893,0,-0.202,0.001,5.024,0
+TN,Season,Surface,15.964,0.444,0.66,0.801,-0.19,0.015,0.06,0.518
+TN,Season,Subsurface,10.057,1.844,0.758,0.605,-0.047,0.795,-0.051,0.807
+TN,Season,Deep,27.95,0.128,0,0.721,3.278,0.722,-3.298,0.721
+TN,Season,Very deep,6.344,0.074,0.609,0.785,3.312,0.79,-3.386,0.785
+TN,Season,Full sample,38.576,0.965,0,0.81,-0.334,0.813,0.505,0.724

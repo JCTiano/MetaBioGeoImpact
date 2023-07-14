@@ -1,0 +1,1631 @@
+---
+title: "Meta-analysis for the Paper"
+author: "Emil De Borger"
+date: "`r Sys.Date()`"
+output: html_document
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+
+---
+
+# Setup 
+
+```{r loading required packages, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(tidyr)
+library(ggforce)
+library(ggplot2)
+library(metafor)
+library(magrittr)
+library(patchwork)
+library(scales)
+library(dplyr)
+library(gridExtra)
+library(maps)
+source("~/GitHub/Metastudy2/source_code/functions_meta_analysis.R")
+
+```
+
+# Preamble
+## Load df-short
+
+The dataframe "dfshort" includes only the rows of the dataframe which have an SD value.
+
+```{r}
+
+rm(dfshort)
+rm(df)
+rm(GradInfo)
+
+load(file = "./r_objects/shortdata.rda")
+load(file = "./r_objects/Grad_new.rda")
+GradInfo <-  df # Gradient study
+
+```
+
+## Last edits to dfshort.
+
+```{r label, options}
+
+dfshort$respvar[dfshort$respvar == "OM (LOI)"] <- "TOC"
+dfshort$hseason <- factor(dfshort$hseason, levels = c("Spring","Summer", "Autumn", "Winter", "Wet", "Dry", "Yearly"))
+
+dfshort$depths <- dfshort$slicedepth
+dfshort$depths[dfshort$depths %in% c("0-0.5", "0-1", "0-2", "0-2.5", "0.5-1", "1-1.5", "1-2", "1.5-2", "surface sediment")]   = "Surface" # 0-2
+dfshort$depths[dfshort$depths %in% c("0-3", "0-4", "0-5", "0-5.5", "1-3", "2-2.5", "2-3", "2-4", "2.5-3", "3-3.5", "3-4", "3-5", "3.5-4", "", "4-4.5", "4-5", "4.5-5")]   = "Subsurface"              # 2-5
+dfshort$depths[dfshort$depths %in% c("4-6", "4-8", "5-10", "5-6", "5-7", "6-10", "6-7", "7-10", "7-8", "7-9", "8-9", "9-10")]   = "Deep"                    # 5-10
+dfshort$depths[dfshort$depths %in% c("10-11", "10-12", "10-15", "11-12", "12-13", "13-14", "14-15", "15-16", "15-20", "16-17", "17-18", "18-19", "19-20", "20-21", "21-22", "22-23", "23-24", "24-25", "25-26", "26-27", "27-28", "28-29", "29-30", "30-31", "31-32", "32-33", "33-34", "34-35", "35-36", "36-37", "37-38", "38-39", "39-40", "40-41", "41-42", "42-43")]   = "Very deep"  # > 10
+dfshort$depths[dfshort$depths %in% c("0-10", "Full core", "Grab sample", "in-situ incubations", "on-board incubations")]   = "Full sample"
+dfshort$depths <- factor(dfshort$depths, levels = c("Surface", "Subsurface", "Deep", "Very deep", "Full sample"))
+
+```
+
+# Plotting dataset characteristics
+
+## Figure 1
+
+- First gradient studies and dfshort are merged, then overview figure(s) are made of the dataset characteristics.
+
+```{r label, options}
+
+## Selecting columns and merging
+dfsel <- dfshort[,c("article_id", 
+                         "article_type_id", 
+                         "Location", 
+                         "hhabtype", 
+                         "hseason",
+                         "gear",
+                         "watdepth",
+                         "slicedepth",
+                         "respvar",
+                         "hstype",
+                         "Latitude_study",
+                         "Longitude_study")]
+
+gradlat <- c(rep(45.68967034, 4) , #1
+             rep(56.636, 4)      , #10
+             rep(56.95885857, 2) , #13
+             rep(38.00789665, 4) , #28
+             rep(54.2175, 3)     , #38
+             rep(-42, 9)         , #41
+             rep(54.23166667, 10), #49
+             rep(54.27516197, 9) , #53
+             rep(40.6, 5)        , #59
+             rep(-30.5, 2)       , #89
+             rep(51.783295, 5)   , #136
+             rep(56.7, 2)        , #152
+             rep(57.8333, 3)     , #183
+             rep(22.38518644, 2)) #3
+
+gradlon <- c(rep(-1.683045313,4)  ,
+             rep(9.0, 4)          ,
+             rep(11.41001333, 2)  ,
+             rep(-3.9, 3)         ,
+             rep(-9.1547815, 4)   ,
+             rep(-175, 9)         ,
+             rep(-3.878333333, 10),
+             rep(-3.872626026, 9) ,
+             rep(0.98, 5)         ,
+             rep(15, 2)           ,
+             rep(1.8196, 5)       ,
+             rep(-153.8, 2)       ,
+             rep(-5.6733, 3)      ,
+             rep(114.1896949, 2))
+
+GradInfo$Latitude_study <- gradlat
+GradInfo$Longitude_study <- gradlon
+GradInfo$Harmonized_study_type <- "Gradient"
+
+gradsel <- GradInfo[,c("article_id", 
+                       "study", 
+                       "Location", 
+                       "Habitat.type", 
+                       "Seasonality", 
+                       "gear.type", 
+                       "Water.depth", 
+                       "Sample.core.depth.slice", 
+                       "Response.variable",
+                       "Harmonized_study_type",
+                       "Latitude_study",
+                       "Longitude_study")]
+colnames(gradsel) <- colnames(fulldfsel)
+
+gradsel$Habitat.type_harmonized <- ifelse(gradsel$Habitat.type_harmonized == "Shallow sandy", "Sand", ifelse(gradsel$Habitat.type_harmonized == "Shallow sandy, low tidal disturbance", "Sand", "Mud"))
+
+gradsel$Seasonality_harmonized[gradsel$Seasonality_harmonized == ""] <- "Summer" 
+gradsel$Seasonality_harmonized[gradsel$Seasonality_harmonized == "Summer, rainy season, upwelling"] <- "Summer" 
+gradsel$Seasonality_harmonized[gradsel$Seasonality_harmonized == "temperate latitude, seasonal, rough seas mentioned in text"] <- "Summer" 
+
+gradsel$Trawling.gear.type_harmonized[gradsel$Trawling.gear.type_harmonized == "otter trawl"] <- "Otter Trawl"
+gradsel$Trawling.gear.type_harmonized[gradsel$Trawling.gear.type_harmonized == "Mussel dredge"] <- "Dredging"
+gradsel$Trawling.gear.type_harmonized[gradsel$Trawling.gear.type_harmonized == "scallop dredge"] <- "Dredging"
+gradsel$Trawling.gear.type_harmonized[gradsel$Trawling.gear.type_harmonized == "Scallop"] <- "Dredging"
+gradsel$Trawling.gear.type_harmonized[gradsel$Trawling.gear.type_harmonized == "mixed fishing gears"] <- "Mixed"
+gradsel$Trawling.gear.type_harmonized[gradsel$Trawling.gear.type_harmonized == "otter trawl beam trawl"] <- "Otter Trawl"
+gradsel$Trawling.gear.type_harmonized[gradsel$Trawling.gear.type_harmonized == "Lobster"] <- "Local gear net"
+gradsel$Trawling.gear.type_harmonized[gradsel$Trawling.gear.type_harmonized == ""] <- "Otter Trawl"
+gradsel$Trawling.gear.type_harmonized[gradsel$Trawling.gear.type_harmonized == "Otter trawl"] <- "Otter Trawl"
+
+gradsel$Response.variable[gradsel$Response.variable == "Silt  "] <- "Silt"
+
+gradsel$Sample.core.depth.slice[gradsel$Sample.core.depth.slice == "surface sediment from Van Veen Grabs"] <- "surface sediment"
+gradsel$Sample.core.depth.slice[gradsel$Sample.core.depth.slice == "0"] <- "surface sediment"
+gradsel$Sample.core.depth.slice[gradsel$Sample.core.depth.slice == ""] <- "surface sediment"
+
+colnames(gradsel) <- colnames(dfsel)
+
+datall <- rbind(dfsel, gradsel)
+
+# Group OM (LOI) with TOC content.
+datall$respvar[datall$respvar == "OM (LOI)"] <- "TOC"
+
+
+datall$depths <- datall$slicedepth
+datall$depths[datall$depths %in% c("0-0.5", "0-1", "0-2", "0-2.5", "0.5-1", "1-1.5", "1-2", "1.5-2", "surface sediment")]   = "Surface" # 0-2
+datall$depths[datall$depths %in% c("0-3", "0-4", "0-5", "0-5.5", "1-3", "2-2.5", "2-3", "2-4", "2.5-3", "3-3.5", "3-4", "3-5", "3.5-4", "", "4-4.5", "4-5", "4.5-5")]   = "Subsurface"              # 2-5
+datall$depths[datall$depths %in% c("4-6", "4-8", "5-10", "5-6", "5-7", "6-10", "6-7", "7-10", "7-8", "7-9", "8-9", "9-10")]   = "Deep"                    # 5-10
+datall$depths[datall$depths %in% c("10-11", "10-12", "10-15", "11-12", "12-13", "13-14", "14-15", "15-16", "15-20", "16-17", "17-18", "18-19", "19-20", "20-21", "21-22", "22-23", "23-24", "24-25", "25-26", "26-27", "27-28", "28-29", "29-30", "30-31", "31-32", "32-33", "33-34", "34-35", "35-36", "36-37", "37-38", "38-39", "39-40", "40-41", "41-42", "42-43")]   = "Very deep"  # > 10
+datall$depths[datall$depths %in% c("0-10", "0-30", "Full core", "Grab sample", "in-situ incubations", "on-board incubations")]   = "Full core"
+
+datall$depths <- factor(datall$depths, levels = c("Surface", "Subsurface", "Deep", "Very deep", "Full core"))
+
+dftoplot <- data.frame(datall)
+# dftoplot <- subset(dftoplot, dftoplot$Response.variable %in% names(vars))
+dftoplot$hseason <- factor(dftoplot$hseason, levels = c("Spring","Summer", "Autumn", "Winter", "Wet", "Dry", "Yearly"))
+
+dftoplot$watdepth <- as.numeric(dftoplot$watdepth)
+dftoplot$article_type_id <- as.factor(dftoplot$article_type_id)
+
+# Make a dataframe with unique combinations of variables.
+comz <- datall %>% distinct(datall$hseason, datall$article_type_id, datall$hstype, datall$hhabtype, datall$gear, datall$watdepth)
+names(comz) <- c("Season", "ArticleID", "Studytype", "Habitat", "Gear", "Depth")
+comz$Season <- factor(comz$Season, levels = c("Spring","Summer", "Autumn", "Winter", "Wet", "Dry", "Yearly"))
+
+season <- datall %>% distinct(datall$hseason, datall$article_type_id)
+season$`datall$hseason` <- factor(season$`datall$hseason`, levels = c("Spring","Summer", "Autumn", "Winter", "Wet", "Dry", "Yearly"))
+
+habitat <- datall %>% distinct(datall$hhabtype, datall$article_type_id)
+gear <- datall %>% distinct(datall$gear, datall$article_type_id)
+depth <- datall %>% distinct(datall$watdepth, datall$article_type_id)
+slice <- datall %>% distinct(datall$depths, datall$article_type_id)
+slice$`datall$depths` <- factor(slice$`datall$depths`, levels = c("Surface","Subsurface","Deep","Very deep","Full sample"))
+studytype <- datall %>% distinct(datall$hstype, datall$article_type_id)
+
+```
+
+
+### Figure 1: The actual plot
+
+```{r}
+
+# World
+# Create world map
+world_map <- map_data("world")
+
+## A. Plot the world map with points
+world <- ggplot() +
+  geom_polygon(data = world_map, aes(x = long, y = lat, group = group), fill = "lightgray", color = "black") +
+  geom_point(data = datall, aes(x = Longitude_study, y = Latitude_study), color = "orange", size = 2.5) +
+  labs(title = "A  Study locations", x = "Longitude", y = "Latitude") + 
+  theme_classic()
+
+#### Season, Sediment type, Gear type
+#### All variables together
+bar_width <- 0.8
+
+## B. Waterdepth type
+depthplot <- ggplot(data = depth, aes(x = as.numeric(depth[,1]))) + 
+              geom_histogram(position = "dodge", fill = "lightgrey", bins = 30, boundary = 0) +
+              theme_classic() + 
+              theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+              scale_x_continuous(breaks = seq(0, max(comz$Depth), by = 50)) +
+              labs(title="B  Water depth", y = "No. studies", x = " ")
+
+depthplot 
+
+## C. Studytype
+studyplot <- ggplot(data = studytype, aes(x = studytype[,1])) + 
+              geom_bar( width = bar_width, position = position_dodge(width = 1), fill = "lightgrey") +
+              #geom_text(stat='count', aes(label= after_stat(count)), vjust=-1) + 
+              theme_classic() +
+              #ylim(0, 40) +
+              theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+              #theme(plot.title = element_text(hjust = 0.5)) + 
+              labs(title="C  Study type", y = "", x = " ")
+
+## D. Season
+seasonplot <- ggplot(data = season, aes(x = season[,1])) + 
+              geom_bar(width = bar_width, position = position_dodge(width = 1), fill = "lightgrey") +
+              #geom_text(stat='count', aes(label= after_stat(count)), vjust=-1) + 
+              theme_classic() + 
+              #ylim(0, 30) +
+              theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+              #theme(plot.title = element_text(hjust = 0.5)) + 
+              labs(title="D  Seasonality", y = "", x = " ")
+
+
+
+
+# Combine the plots using patchwork
+combined_plots <- seasonplot + studyplot + depthplot + world
+design <- "4444444444444
+           4444444444444
+           4444444444444
+           4444444444444
+           3333332211111
+           3333332211111
+"
+
+# Set the heights of the plots to be equal
+combined_plots <- combined_plots +
+  plot_layout(guides = "collect", design=design)
+
+# Display the combined plots
+combined_plots
+ggsave("~/GitHub/Metastudy2/figures_final/info_world_season_stype_depth.png", units = "in", height = 10, width = 12)
+
+```
+
+### Figure 1: supplement
+
+```{r label, options}
+
+## Supplement gear type, sediment type, sampling strategy
+# Make a dataframe with unique combinations of variables.
+d <- datall$slicedepth
+  
+datall$samplestrat <- ifelse(d == "Full core", "Full core", ifelse(d == "surface sediment", "Surface sediment", ifelse(d == "in-situ incubations" | d == "on-board incubations", "Core incubation", ifelse(d == "Grab sample", "Grab sample", "Core sections"))))
+comz2 <- datall %>% distinct(datall$article_type_id, datall$samplestrat)
+names(comz2) <- c("ArticleID", "Samplestyle")
+comz2$Samplestyle <- factor(comz2$Samplestyle, levels = c("Core sections", "Full core", "Grab sample", "Surface sediment", "Core incubation"))
+
+stratplot <- ggplot(data = comz2, aes(x = Samplestyle)) + 
+             geom_bar(width = bar_width, position = position_dodge(width = 1), fill = "lightgray") +
+             #geom_text(stat='count', aes(label= after_stat(count)), vjust=-1) + 
+             theme_classic() + 
+             #ylim(0, 37) +
+             theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+             #theme(plot.title = element_text(hjust = 0.5)) + 
+             labs(title= "A  Sampling method", y = "No. studies", x = " ")
+
+## Sediment type
+sedimentplot <- ggplot(data = habitat, aes(x = habitat$`datall$hhabtype`)) + 
+                geom_bar(width = bar_width, position = position_dodge(width = 1), fill = "lightgrey") +
+                # geom_text(stat='count', aes(label= after_stat(count)), vjust=-1) + 
+                theme_classic() + 
+                # ylim(0, 45) +
+                theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+                #theme(plot.title = element_text(hjust = 0.5)) + 
+                labs(title="B  Sediment type", y = "", x = " ")
+
+## Gear plot
+gearplot <- ggplot(data = gear, aes(x = gear[,1])) + 
+            geom_bar( width = bar_width, position = position_dodge(width = 1), fill = "lightgrey") +
+            # geom_text(stat='count', aes(label= after_stat(count)), vjust=-1) + 
+            theme_classic() +
+            #ylim(0, 44) +
+            theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+            #theme(plot.title = element_text(hjust = 0.5)) + 
+            labs(title="C  Gear type", y = "", x = " ")
+
+# Combine the plots using patchwork
+combined_plots <- stratplot + sedimentplot + gearplot
+design <- "11233
+           11233
+"
+# Set the heights of the plots to be equal
+combined_plots <- combined_plots +
+  plot_layout(guides = "collect", heights = c(1, 1, 1), design=design)
+
+# Display the combined plots
+combined_plots
+
+ggsave("~/GitHub/Metastudy2/figures/figures_final/info_strategy_stype_geartype.png", units = "in", height = 6, width = 12)
+
+```
+
+### Number of Variables per study type
+
+* Here, the flux data (NHx, PO4, NOx) is ignored, as it is not compatible with lnRR.
+
+```{r}
+
+## Experimental - Observational
+### All variables
+tab <- sort(table(dfshort$respvar), decreasing = TRUE)
+tab <- as.data.frame(tab)
+tab <- tab[-c(14, 24, 37, 40, 44),]
+
+studies <- NULL
+for(i in tab$Var1){
+  sub <- dfshort$article_type_id[dfshort$respvar == i]
+  cnt <- length(unique(sub))
+  studies <- c(studies, cnt)
+}
+
+tab$studies <- studies
+
+tab <- tab[order(tab$studies, decreasing = TRUE),]
+tab$Var1 <- factor(tab$Var1, levels = tab$Var1)
+
+variablesfull <- ggplot(data = tab, aes(x = Var1, y = studies)) +
+  geom_bar(stat = "identity", fill = "lightgrey") +
+  labs(y = "Studies", x = "") +
+  geom_text(data = tab, label = tab$Freq, vjust = -0.5, color = "black", size = 3) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+variablesfull
+
+ggsave("~/GitHub/Metastudy2/figures/figures_final/samples_per_variable_dfshort.png", units = "in", height = 5, width = 9)
+
+### Variables >= 3 studies
+variables_impobs_exp_3 <- ggplot(subset(tab, studies >= 3), aes(x = Var1, y = studies)) +
+  geom_bar(stat = "identity", fill = "lightgrey") +
+  labs(y = "Studies", x = "", title = "Experimental - Comparative control impact") +
+  theme_classic() +
+  geom_text(data = subset(tab, studies >= 3), aes(x = Var1, y = studies, label = Freq), vjust = -0.5, color = "black", size = 3) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+variables_impobs_exp_3
+ggsave("~/GitHub/Metastudy2/figures_final/samples_per_variable_expobs_morethan3studies.png", units = "in", height = 5, width = 9)
+
+## Gradient studies
+### All variables
+tabgrad <- sort(table(GradInfo$Response.variable), decreasing = TRUE)
+tabgrad <- as.data.frame(tabgrad)
+tabgrad <- tabgrad[-c(11),]
+
+studies <- NULL
+for(i in tabgrad$Var1){
+  sub <- GradInfo$article_id[GradInfo$Response.variable == i]
+  cnt <- length(unique(sub))
+  studies <- c(studies, cnt)
+}
+
+tabgrad$studies <- studies
+
+tabgrad <- tabgrad[order(tabgrad$studies, decreasing = TRUE),]
+
+variablesfull <- ggplot(data = tabgrad, aes(x = Var1, y = studies)) +
+  geom_bar(stat = "identity", fill = "lightgrey") +
+  labs(y = "Studies", x = "") +
+  geom_text(data = tabgrad, label = tabgrad$Freq, vjust = -0.5, color = "black", size = 3) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+ggsave("~/GitHub/Metastudy2/figures/figures_final/samples_per_variable_dfshort.png", units = "in", height = 5, width = 9)
+
+### Variables >= 3 studies
+variables_grad_3 <- ggplot(subset(tabgrad, studies >= 3), aes(x = Var1, y = studies)) +
+  geom_bar(stat = "identity", fill = "lightgrey") +
+  labs(y = "Studies", x = "", title = "Gradient") +
+  theme_classic() +
+  geom_text(data = subset(tabgrad, studies >= 3), aes(x = Var1, y = studies, label = Freq), vjust = -0.5, color = "black", size = 3) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+variables_grad_3
+ggsave("~/GitHub/Metastudy2/figures_final/samples_per_variable_gradient_morethan3studies.png", units = "in", height = 5, width = 9)
+
+## Combined > 3 studies
+combined_plots <- variables_impobs_exp_3 + variables_grad_3
+combined_plots <- combined_plots + plot_layout(guides = "collect", ncol = 1) + plot_annotation(tag_levels = 'A')
+combined_plots
+
+ggsave("~/GitHub/Metastudy2/figures_final/variables_allstudytypes_morethan3studies.png", units = "in", height = 12, width = 9)
+
+```
+
+# Figure 2: True effect sizes, no covariates
+
+Based on the last figure made above ("variables_allstudytypes_morethan3studies.png"), we now calculate the overall response ratio for variables where 3 or more studies report data.
+
+So for experimental - observational impact these are `tab$Var1`, and for gradients these are `tabgrad$Var1`, filtered over studies >= 3.
+
+I first make these figures separately, then, they are combined in illustrator / ppt.
+
+==> Figure 2 consists of "Figure2_expobs_trueresponse.png" and "Figure2_grad_trueresponse.png".
+
+## Experimental - Comparative-control impact
+
+### Study types combined
+
+Here, the "summarizer" function is used from the source code, to calculate the mean responses for each variable.
+
+To see the data, print the object "suball" after running this chunk.
+
+```{r label, options}
+
+dfsummed <- summarizer(dfshort)
+
+# Subsetting dataset with variables >= 3 studies.
+# The dataset is reordered, grouping similar variables
+variables <- tab$Var1[tab$studies >= 3]
+variables <- variables[c(2,6,7,1,4,3,13, 5,15,9,12,14, 16,11,8,17,18,19,10)]
+variables <- factor(variables, levels = variables)
+suball    <- dfsummed[dfsummed$v %in% variables,]
+
+# Making sure the variables will be displayed as desired
+suball    <- suball[match(variables, suball$v),]
+suball     <- suball[nrow(suball):1,]
+suball$v   <- factor(suball$v, levels = suball$v)
+
+## Preparing plot
+p <- ggplot(data = suball, aes(y = factor(v, levels = v))) +
+  geom_point(aes(x = M), shape = 15, size = 3) +
+  geom_linerange(aes(xmin = LL, xmax = UL)) +
+  geom_vline(xintercept = 0, linetype="dashed") +
+  labs(x="Log response ratio", y="") + 
+  coord_cartesian(ylim=c(1,20), xlim=c(-5, 3.1)) +  
+  theme_classic() +
+  annotate("text", x = -1, y = 20, label = "Decrease", size = 3.5) +
+  annotate("text", x = 1, y = 20, label = "Increase", size = 3.5) + 
+    theme(axis.line.y = element_blank(),
+        axis.ticks.y= element_blank(),
+        axis.text.y= element_blank(),
+        axis.title.y= element_blank())
+
+## Mutate table a bit for plotting.
+subover2 <- suball
+
+subover2 <- suball |> mutate(pval = case_when(
+    pval/2 < .001 ~ "<0.001",
+    round(pval/2, 2) == .05 ~ as.character(round(pval/2,3)),
+    pval/2 < .01 ~ str_pad( # if less than .01, go one more decimal place
+      as.character(round(pval/2, 3)),
+      width = 4,
+      pad = "0",
+      side = "right"
+    ),
+    TRUE ~ str_pad( # otherwise just round to 2 decimal places and pad string so that .2 reads as 0.20
+      as.character(round((pval)/2, 2)),
+      width = 4,
+      pad = "0",
+      side = "right"
+    )
+  ) 
+) 
+
+subover2$estimate_lab <- paste0(suball$M, " [", suball$LL, " - ", suball$UL, "]")
+subover2$ns           <- paste0(suball$n, " (", suball$s, ")")
+subover2 <- rbind(subover2[c(1,2,6,7,9, 10, 11, 12, 13)], data.frame(v = "Variable", M = "", LL = "", UL = "", pval = "p-value",n = "", s = "", estimate_lab = "Log Response Ratio [95% CI]", ns = "n Obs. (studies)"))
+subover2$pval[subover2$pval == 1000] <- "<0.001" 
+
+pleft <- ggplot(data = subover2, aes(y = v)) +
+  geom_text(aes(x = 0, label = v), hjust = 0, fontface = "bold", size = 3.5) +
+  geom_text(aes(x = 1, label = estimate_lab), hjust = 0, size = 3.5,
+            fontface = ifelse(subover2$estimate_lab == "Log Response Ratio [95% CI]", "bold", "plain")) +
+  theme_void() +
+  coord_cartesian(xlim = c(0, 4), ylim=c(1,20))
+
+# Plot for p values
+pright <- ggplot(data = subover2) +
+  geom_text(aes(x = 0, y = v, label = ns), hjust = 0, size = 3.5,
+            fontface = ifelse(subover2$ns == "n Obs. (studies)", "bold", "plain")) + 
+  theme_void() +
+  coord_cartesian(ylim=c(1,20))
+
+
+layout <- c(
+  area(t = 0, b = 28, l = 0, r = 12), # left plot, starts at the top of the page (0) and goes 30 units down and 3 units to the right
+  area(t = 1, b = 28, l = 8,  r = 14), # middle plot starts a little lower (t=1) because there's no title. starts 1 unit right of the left plot (l=4, whereas left plot is r=3), goes to the bottom of the page (30 units), and 6 units further over from the left plot (r=9 whereas left plot is r=3)
+  area(t = 0, b = 28, l = 14, r = 17) # right most plot starts at top of page, begins where middle plot ends (l=9, and middle plot is r=9), goes to bottom of page (b=30), and extends two units wide (r=11)
+)
+
+# final plot arrangement
+pleft + p + pright + plot_layout(design = layout)
+
+ggsave("~/GitHub/Metastudy2/figures_final/Figure2_expobs_trueresponse.png", units = "in", height = 8, width = 10)
+
+```
+
+### Study types combined (supplement)
+
+To see the data, print the object "suball2" after running this chunk.
+
+```{r label, options}
+
+dfsummed2 <- summarizer2(dfshort)
+
+suball2    <- dfsummed2[dfsummed2$v %in% variables,]
+variables2 <- rep(variables, each = 2)
+variables2 <- variables2[-c(18, 24)]
+
+# Making sure the variables will be displayed as desired
+suball2   <- suball2[order(match(suball2$v, relvar2)),]
+suball2   <- suball2[nrow(suball2):1,]
+suball2$v <- factor(suball2$v, levels = variables)
+
+## Preparing plot
+p <- ggplot(data = suball2, aes(y = v, shape = stype)) +
+  geom_point(aes(x = M, shape = stype, col = stype), size = 2.5, position = position_dodge(width = 0.9)) +
+  geom_linerange(aes(xmin = LL, xmax = UL, col = stype), position = position_dodge(width = 0.9)) + 
+  geom_vline(xintercept = 0, linetype="dashed") +
+        scale_color_manual(name = "Study type", values=c("grey50", "black", "grey2")) +
+  labs(x="Log response ratio", y="", shape = "Study type") + 
+  coord_cartesian(ylim=c(1,20), xlim=c(-6, 6)) +  
+  theme_classic() +
+  annotate("text", x = -1, y = 20, label = "Decrease", size = 3.5) +
+  annotate("text", x = 1, y = 20, label = "Increase", size = 3.5) + 
+    theme(axis.line.y = element_blank(),
+        axis.ticks.y= element_blank(),
+        axis.text.y= element_blank(),
+        axis.title.y= element_blank(),
+        legend.position = "bottom") #+
+  # scale_shape(
+  #   guide = guide_legend(
+  #     direction = "horizontal",
+  #     title.position = "top",
+  #     title.hjust = 0.5
+  #   )
+  # )
+
+## Mutate table a bit for plotting.
+subover2 <- suball2
+
+subover2 <- suball2 |> mutate(pval = case_when(
+    pval/2 < .001 ~ "<0.001",
+    round(pval/2, 2) == .05 ~ as.character(round(pval/2,3)),
+    pval/2 < .01 ~ str_pad( # if less than .01, go one more decimal place
+      as.character(round(pval/2, 3)),
+      width = 4,
+      pad = "0",
+      side = "right"
+    ),
+    TRUE ~ str_pad( # otherwise just round to 2 decimal places and pad string so that .2 reads as 0.20
+      as.character(round((pval)/2, 2)),
+      width = 4,
+      pad = "0",
+      side = "right"
+    )
+  ) 
+) 
+
+subover2$estimate_lab <- paste0(suball2$M, " [", suball2$LL, " - ", suball2$UL, "]")
+subover2$ns           <- paste0(suball2$n, " (", suball2$s, ")")
+subover2 <- rbind(subover2[c(1,2,6,7,9, 10, 11, 13, 14, 12)], data.frame(v = "Variable", M = "", LL = "", UL = "", pval = "p-value",n = "", s = "", estimate_lab = "Log Response Ratio [95% CI]", ns = "n Obs. (studies)", stype = ""))
+subover2$pval[subover2$pval == 1000] <- "<0.001" 
+
+pleft <- ggplot(data = subover2, aes(y = v)) +
+  geom_text(aes(x = 0, label = v), hjust = 0, fontface = "bold", size = 3.5) +
+  geom_text(aes(x = 1, label = estimate_lab, group = stype, col = stype), hjust = 0, size = 3.5,
+            fontface = ifelse(subover2$estimate_lab == "Log Response Ratio [95% CI]", "bold", "plain"),
+            position = position_dodge(width = 0.9), show.legend = FALSE) +
+      scale_color_manual(values=c("black", "grey50", "grey2")) +
+  theme_void() +
+  scale_fill_manual(values=pcolz) + 
+  coord_cartesian(xlim = c(0, 4), ylim=c(1,20))
+
+# Plot for p values
+pright <- ggplot(data = subover2) +
+  geom_text(aes(x = 0, y = v, label = ns, group = stype, col = stype), hjust = 0, size = 3.5, 
+            fontface = ifelse(subover2$ns == "n Obs. (studies)", "bold", "plain"),
+            position = position_dodge(width = 0.9), show.legend = FALSE) +
+    scale_color_manual(values=c("black", "grey50", "grey2")) + 
+  theme_void() +
+  coord_cartesian(ylim=c(1,20))
+
+
+layout <- c(
+  area(t = 0, b = 28, l = 0, r = 12), # left plot, starts at the top of the page (0) and goes 30 units down and 3 units to the right
+  area(t = 1, b = 28, l = 8,  r = 14), # middle plot starts a little lower (t=1) because there's no title. starts 1 unit right of the left plot (l=4, whereas left plot is r=3), goes to the bottom of the page (30 units), and 6 units further over from the left plot (r=9 whereas left plot is r=3)
+  area(t = 0, b = 28, l = 14, r = 17) # right most plot starts at top of page, begins where middle plot ends (l=9, and middle plot is r=9), goes to bottom of page (b=30), and extends two units wide (r=11)
+)
+
+# final plot arrangement
+pleft + p + pright + plot_layout(design = layout)
+
+ggsave("~/GitHub/Metastudy2/figures_final/Figure2SUPPLEMENT_expobs_separated_trueresponse.png", units = "in", height = 10, width = 10)
+
+```
+
+## Gradient studies
+
+To see the data, print the object "gradplot" after running this chunk.
+
+Q for Justin: Why is there no gradient result for mud content and mean grain size + is it possible to group OM (LOI) and TOC here as well?
+
+```{r label, options}
+
+load(file = "../r_objects/SummaryEF_Gradients.Rda")
+
+gradplot <- data.frame(v = c("TOC", "Chl-a", "OM (LOI)", "TN"), M = sumData$M, LL = sumData$LowerBound, UL = sumData$UpperBound, pval = NA, n = sumData$Observations, s = sumData$Studies)
+
+gradplot$estimate_lab <- paste0(gradplot$M, " [", gradplot$LL, " - ", gradplot$UL, "]")
+gradplot$ns           <- paste0(gradplot$n, " (", gradplot$s, ")")
+
+## Preparing plot
+p <- ggplot(data = gradplot, aes(y = v)) +
+  geom_point(aes(x = M), shape = 15, size = 3) +
+  geom_linerange(aes(xmin = LL, xmax = UL)) +
+  geom_vline(xintercept = 0, linetype="dashed") +
+  labs(x="Standardized mean difference", y="") + 
+  coord_cartesian(ylim=c(1,5), xlim=c(-3, 3.5)) +  
+  theme_classic() +
+  annotate("text", x = -1, y = 5, label = "Decrease", size = 3.5) +
+  annotate("text", x = 1, y = 5, label = "Increase", size = 3.5) + 
+    theme(axis.line.y = element_blank(),
+        axis.ticks.y= element_blank(),
+        axis.text.y= element_blank(),
+        axis.title.y= element_blank())
+
+## Mutate table a bit for plotting.
+subover2 <- gradplot
+
+subover2 <- rbind(subover2, data.frame(v = "Variable", M = "", LL = "", UL = "", pval = "p-value",n = "", s = "", estimate_lab = "SMD [95% CI]", ns = "n Obs. (studies)"))
+subover2$pval[subover2$pval == 1000] <- "<0.001" 
+
+pleft <- ggplot(data = subover2, aes(y = v)) +
+  geom_text(aes(x = 0, label = v), hjust = 0, fontface = "bold", size = 3.5) +
+  geom_text(aes(x = 1, label = estimate_lab), hjust = 0, size = 3.5,
+            fontface = ifelse(subover2$estimate_lab == "SMD [95% CI]", "bold", "plain")) +
+  theme_void() +
+  coord_cartesian(xlim = c(0, 4), ylim=c(1, 5))
+
+# Plot for p values
+pright <- ggplot(data = subover2) +
+  geom_text(aes(x = 0, y = v, label = ns), hjust = 0, size = 3.5,
+            fontface = ifelse(subover2$ns == "n Obs. (studies)", "bold", "plain")) + 
+  theme_void() +
+  coord_cartesian(ylim=c(1, 5))
+
+
+layout <- c(
+  area(t = 0, b = 8, l = 0, r = 12), # left plot, starts at the top of the page (0) and goes 30 units down and 3 units to the right
+  area(t = 1, b = 8, l = 8,  r = 14), # middle plot starts a little lower (t=1) because there's no title. starts 1 unit right of the left plot (l=4, whereas left plot is r=3), goes to the bottom of the page (30 units), and 6 units further over from the left plot (r=9 whereas left plot is r=3)
+  area(t = 0, b = 8, l = 14, r = 17) # right most plot starts at top of page, begins where middle plot ends (l=9, and middle plot is r=9), goes to bottom of page (b=30), and extends two units wide (r=11)
+)
+
+# final plot arrangement
+pleft + p + pright + plot_layout(design = layout)
+
+ggsave("~/GitHub/Metastudy2/figures_final/Figure2_grad_trueresponse.png", units = "in", height = 2, width = 10)
+
+```
+
+# Calculation of averages per slicedepths.
+
+## Look for variables where there are at least three studies for at least two depth classes to show some type of difference.
+
+-> Starting point are "variables" calculated earlier.
+-> In the end, we make a new selection of variables called "meta_variables"
+
+```{r}
+
+## Look at rows where there are at least 3 values >= 3 and select these
+tabvardepths <- table(dfshort$respvar[dfshort$respvar %in% variables], dfshort$depths[dfshort$respvar %in% variables] ) 
+tabvardepths <- tabvardepths[c(3, 4, 6, 7, 8, 9, 10:18),]
+
+newvariables <- rownames(tabvardepths)
+
+## Now check if these come from different studies.
+tab <- table(dfshort$article_type_id[dfshort$respvar %in% newvariables], dfshort$depths[dfshort$respvar %in% newvariables] , dfshort$respvar[dfshort$respvar %in% newvariables])
+
+sumdf <- NULL
+
+for(i in 1:15){
+  df <- tab[,,i]
+  counts <- colSums(df != 0)
+  newrow <- c("name" = newvariables[i], counts)
+  sumdf <- rbind(sumdf, newrow)
+}
+
+to_continue <- sumdf[c(1, 3, 5, 8, 9, 10, 12, 14, 15),]
+rownames(to_continue) <- NULL
+
+knitr::kable(to_continue)
+
+meta_variables <- to_continue[,1]
+
+```
+
+# Figure 3: Effect sizes per slice depth
+
+For figure 3, I'm staying with the significant parameters only + TN (to fill up a spot), since another plot would become too large.
+We can say: "Here are the significant ones, the other non-significant ones are in supplement"
+
+### Averages per depth stratum
+
+Here we use the function "summarizer_varslice".
+This function calculates the average effect size per depth stratum, per study, for each variable.
+This will be used in the plot, showing the within-study-means, along with the overall means, per depth slices.
+
+```{r}
+
+out <- summarizer_varslice(dfshort, varz = meta_variables)
+
+out$depths <- factor(out$depths, levels = c("Surface", "Subsurface", "Deep", "Very deep", "Full sample"))
+out <- out[order(out$respvar, out$yi, decreasing = TRUE),]
+
+```
+
+### Fitting the depth-stratum models
+
+From the average within-study lnRR, we now calculate the averages per depth slice, for all studies.
+
+```{r}
+
+## Fitting the models
+modTOCslice   <- rma.uni(yi, vi, data = out, mods = ~ depths - 1, subset = (respvar == "TOC"), method = "REML")
+modTNslice    <- rma.uni(yi, vi, data = out, mods = ~ depths - 1, subset = (respvar == "TN"), method = "REML")
+modChlaslice  <- rma.uni(yi, vi, data = out, mods = ~ depths - 1, subset = (respvar == "Chl-a"), method = "REML")
+modPhaeoslice <- rma.uni(yi, vi, data = out, mods = ~ depths - 1, subset = (respvar == "Phaeopigments"), method = "REML")
+modPhytoslice <- rma.uni(yi, vi, data = out, mods = ~ depths - 1, subset = (respvar == "Phytopigments"), method = "REML")
+modMgsslice   <- rma.uni(yi, vi, data = out, mods = ~ depths - 1, subset = (respvar == "Mean grain size"), method = "REML")
+modSiltslice  <- rma.uni(yi, vi, data = out, mods = ~ depths - 1, subset = (respvar == "Silt"), method = "REML")
+modProtslice  <- rma.uni(yi, vi, data = out, mods = ~ depths - 1, subset = (respvar == "Proteins"), method = "REML")
+modNHxslice   <- rma.uni(yi, vi, data = out, mods = ~ depths - 1, subset = (respvar == "NHx"), method = "REML")
+
+## Saving the table.
+slicemods <- rbind(modTab(modTOCslice, var = "TOC"),
+                   modTab(modTNslice, var = "TN"),
+                   modTab(modChlaslice, var = "Chl-a"),
+                   modTab(modPhaeoslice, var = "Phaeopigment"),
+                   modTab(modPhytoslice, var = "Phytopigment"),
+                   modTab(modMgsslice, var = "MGS"),
+                   modTab(modSiltslice, var = "Silt"),
+                   modTab(modProtslice, var = "Protein"),
+                   modTab(modNHxslice, var = "NHx"))
+write.table(slicemods, file = "~/GitHub/Metastudy2/tables_final/slices.txt", sep = ",", quote = FALSE, row.names = F)
+
+```
+
+### Plotting figures
+
+```{r}
+
+tocplot  <- plotdepthslices(var = "TOC"            , model = modTOCslice  , avgdf = out, maintitle = "Total organic carbon", miny = -1.1, maxy = 2, textpos = 1.5)
+tnplot   <- plotdepthslices(var = "TN"             , model = modTNslice   , avgdf = out, maintitle = "Total nitrogen", miny = -1.1, maxy = 2, textpos = 1.5)
+chlaplot <- plotdepthslices(var = "Chl-a"          , model = modChlaslice , avgdf = out, maintitle = "Chlorophyll-a", miny = -1.28, maxy = 2, textpos = 1.5)
+phaeplot <- plotdepthslices(var = "Phaeopigments"   , model = modPhaeoslice, avgdf = out, maintitle = "Phaeopigment", miny = -1.1, maxy = 2, textpos = 1.5)
+phytplot <- plotdepthslices(var = "Phytopigment"   , model = modPhytoslice, avgdf = out, maintitle = "Phytopigment", miny = -1.1, maxy = 2, textpos = 1.5)
+mgsplot  <- plotdepthslices(var = "Mean grain size", model = modMgsslice  , avgdf = out, maintitle = "Mean grainsize", miny = -1.1, maxy = 2, textpos = 1.5)
+siltplot <- plotdepthslices(var = "Silt"           , model = modSiltslice , avgdf = out, maintitle = "Silt", miny = -1.1, maxy = 2, textpos = 1.5)
+protplot <- plotdepthslices(var = "Proteins"       , model = modProtslice , avgdf = out, maintitle = "Protein", miny = -1.1, maxy = 2, textpos = 1.5)
+nhxplot  <- plotdepthslices(var = "NHx"            , model = modNHxslice  , avgdf = out, maintitle = "NHx", miny = -2.1, maxy = 2.4, textpos = 2)
+
+# Combo
+combined_plots <-  tocplot + tnplot + chlaplot + phaeplot + protplot + mgsslice +
+  plot_layout(ncol = 2, byrow = TRUE)
+
+# Add the legend to the top right corner
+combined_plots <- combined_plots +
+  plot_annotation(tag_levels = "A") +
+  plot_layout(guides = "collect", widths = 1)
+
+# Display the combined plots
+combined_plots
+
+ggsave("~/GitHub/Metastudy2/figures_final/figure3_slicedepth_significantparmsandtn.png", units = "in", height = 10, width = 8)  
+
+# Saving the rest
+# Combo
+combined_plots <-  phytplot + siltplot + nhxplot 
+  plot_layout(ncol = 3, byrow = TRUE)
+
+# Add the legend to the top right corner
+combined_plots <- combined_plots +
+  plot_annotation(tag_levels = "A") +
+  plot_layout(guides = "collect", widths = 1)
+
+# Display the combined plots
+combined_plots
+ggsave("~/GitHub/Metastudy2/figures_final/figure3SUPPLEMENT_slicedepth_nonsig.png", units = "in", height = 5, width = 15)  
+
+```
+
+# Regressions (THE meta-regressions)
+
+## TOC
+
+### Selecting subsets for time since trawling and intensity
+
+```{r label, options}
+
+# Subset of our variable
+subtoc <- subset(dfshort, respvar == "TOC")
+
+# filters out when too few individual studies. ==> Used for regression depth slices + variable.
+timedftoc <- subset(subtoc, !is.na(subtoc$timesincetrawl))  # select known trawl times
+fishdftoc <- subset(subtoc, !is.na(subtoc$heffortnum))        # first take out unknown for recovery models
+
+```
+
+### Time since trawling
+
+- modTOCtst: Model not significant (p = 0.0868)
+
+```{r, echo = FALSE, warning = FALSE}
+
+modTOCtst <- contvarplot(resp = "TOC", depvar = "timesincetrawl", df = timedftoc, xlabz = "log (timesincetrawl)", log = TRUE)
+
+```
+
+### Trawling frequency
+
+```{r, echo = FALSE, warning = FALSE}
+
+modTOCtfr <- contvarplot(resp = "TOC", depvar = "heffortnum", df = fishdftoc, xlabz = "trawling effort", log = FALSE)
+
+```
+
+### Current velocity
+
+```{r, echo = FALSE, warning = FALSE}
+
+modTOCcur <- contvarplot(resp = "TOC", depvar = "cvel", df = dfshort, xlabz = "Current velocity", log = FALSE)
+
+```
+
+### Water depth
+
+```{r, echo = FALSE, warning = FALSE}
+
+modTOCwat <- contvarplot(resp = "TOC", depvar = "watdepth", df = dfshort, xlabz = "Water depth", log = FALSE)
+
+```
+
+### Primary productivity
+
+```{r, echo = FALSE, warning = FALSE}
+
+modTOCnpp  <- contvarplot(resp = "TOC", depvar = "nppsurf", df = dfshort, xlabz = "Primary productivity", log = FALSE)
+
+```
+
+### Season
+
+```{r, echo = FALSE, warning = FALSE}
+
+modTOCsea <- contvarplot(resp = "TOC", depvar = "hseason", df = dfshort, xlabz = "Season", log = FALSE)
+
+```
+
+### Habitat
+
+```{r, echo = FALSE, warning = FALSE}
+
+modTOChab <- contvarplot(resp = "TOC", depvar = "hhabtype", df = dfshort, xlabz = "habitat", log = FALSE)
+
+```
+
+### Combine for output
+
+```{r}
+
+toc_mods <- rbind(modTOCtst, modTOCtfr, modTOCcur, modTOCwat, modTOCnpp, modTOCsea, modTOChab)
+toc_mods[,c(4:11)] <- round(toc_mods[,c(4:11)], 3)
+write.table(toc_mods, file = "~/GitHub/Metastudy2/tables_final/toc_models.txt", sep = ",", quote = FALSE, row.names = F)
+
+```
+
+## TN
+
+### Selecting subsets for time since trawling and intensity
+
+```{r label, options}
+
+# Subset of our variable
+subtn <- subset(dfshort, respvar == "TN")
+
+# filters out when too few individual studies. ==> Used for regression depth slices + variable.
+timedftn <- subset(subtn, !is.na(subtn$timesincetrawl))  # select known trawl times
+fishdftn <- subset(subtn, !is.na(subtn$heffortnum))        # first take out unknown for recovery models
+
+```
+
+### Time since trawling
+
+- modTNtst: Model not significant (p = 0.0868)
+
+```{r, echo = FALSE, warning = FALSE}
+
+modTNtst <- contvarplot(resp = "TN", depvar = "timesincetrawl", df = timedftn, xlabz = "log (timesincetrawl)", log = TRUE)
+
+```
+
+### Trawling frequency
+
+```{r, echo = FALSE, warning = FALSE}
+
+modTNtfr <- contvarplot(resp = "TN", depvar = "heffortnum", df = fishdftn, xlabz = "trawling effort", log = FALSE)
+
+```
+
+### Current velocity
+
+```{r, echo = FALSE, warning = FALSE}
+
+modTNcur <- contvarplot(resp = "TN", depvar = "cvel", df = dfshort, xlabz = "Current velocity", log = FALSE)
+
+```
+
+### Water depth
+
+```{r, echo = FALSE, warning = FALSE}
+
+modTNwat <- contvarplot(resp = "TN", depvar = "watdepth", df = dfshort, xlabz = "Water depth", log = FALSE)
+
+```
+
+### Primary productivity
+
+```{r, echo = FALSE, warning = FALSE}
+
+modTNnpp  <- contvarplot(resp = "TN", depvar = "nppsurf", df = dfshort, xlabz = "Primary productivity", log = FALSE)
+
+```
+
+### Season
+
+```{r, echo = FALSE, warning = FALSE}
+
+modTNsea <- contvarplot(resp = "TN", depvar = "hseason", df = dfshort, xlabz = "Season", log = FALSE)
+
+```
+
+### Habitat => Not possible
+
+```{r, echo = FALSE, warning = FALSE}
+
+modTNhab <- contvarplot(resp = "TN", depvar = "hhabtype", df = dfshort, xlabz = "habitat", log = FALSE)
+
+```
+
+### Combine for output
+
+```{r}
+
+tn_mods <- rbind(modTNtst, modTNtfr, modTNcur, modTNwat, modTNnpp, modTNsea)
+tn_mods[,c(4:11)] <- round(tn_mods[,c(4:11)], 3)
+write.table(tn_mods, file = "~/GitHub/Metastudy2/tables_final/tn_models.txt", sep = ",", quote = FALSE, row.names = F)
+
+```
+
+## Chla
+
+```{r label, options}
+
+# Subset of our variable
+subchla <- subset(dfshort, respvar == "Chl-a")
+
+# filters out when too few individual studies. ==> Used for regression depth slices + variable.
+timedfchla <- subset(subchla, !is.na(subchla$timesincetrawl))  # select known trawl times
+fishdfchla <- subset(subchla, !is.na(subchla$heffortnum))        # first take out unknown for recovery models
+
+```
+
+### Time since trawling
+
+- modChlatst: Model not significant (p = 0.0868)
+
+```{r, echo = FALSE, warning = FALSE}
+
+modChlatst <- contvarplot(resp = "Chl-a", depvar = "timesincetrawl", df = timedfchla, xlabz = "log (timesincetrawl)", log = TRUE)
+
+```
+
+### Trawling frequency
+
+```{r, echo = FALSE, warning = FALSE}
+
+modChlatfr <- contvarplot(resp = "Chl-a", depvar = "heffortnum", df = fishdfchla, xlabz = "trawling effort", log = FALSE)
+
+```
+
+### Current velocity
+
+```{r, echo = FALSE, warning = FALSE}
+
+modChlacur <- contvarplot(resp = "Chl-a", depvar = "cvel", df = dfshort, xlabz = "Current velocity", log = FALSE)
+
+```
+
+### Water depth
+
+```{r, echo = FALSE, warning = FALSE}
+
+modChlawat <- contvarplot(resp = "Chl-a", depvar = "watdepth", df = dfshort, xlabz = "Water depth", log = FALSE)
+
+```
+
+### Primary productivity
+
+```{r, echo = FALSE, warning = FALSE}
+
+modChlanpp  <- contvarplot(resp = "Chl-a", depvar = "nppsurf", df = dfshort, xlabz = "Primary productivity", log = FALSE)
+
+```
+
+### Season
+
+```{r, echo = FALSE, warning = FALSE}
+
+modChlasea <- contvarplot(resp = "Chl-a", depvar = "hseason", df = dfshort, xlabz = "Season", log = FALSE)
+
+```
+
+### Habitat
+
+```{r, echo = FALSE, warning = FALSE}
+
+modChlahab <- contvarplot(resp = "Chl-a", depvar = "hhabtype", df = dfshort, xlabz = "habitat", log = FALSE)
+
+```
+
+### Combine for output
+
+```{r}
+
+Chla_mods <- rbind(modChlatst, modChlatfr, modChlacur, modChlawat, modChlanpp, modChlasea, modChlahab)
+Chla_mods[,c(4:11)] <- round(Chla_mods[,c(4:11)], 3)
+write.table(Chla_mods, file = "~/GitHub/Metastudy2/tables_final/Chla_models.txt", sep = ",", quote = FALSE, row.names = F)
+
+```
+
+## Phaeopigments
+
+```{r label, options}
+
+# Subset of our variable
+subphaeo <- subset(dfshort, respvar == "Phaeopigments")
+
+# filters out when too few individual studies. ==> Used for regression depth slices + variable.
+timedfphaeo <- subset(subphaeo, !is.na(subphaeo$timesincetrawl))  # select known trawl times
+fishdfphaeo <- subset(subphaeo, !is.na(subphaeo$heffortnum))        # first take out unknown for recovery models
+
+```
+
+### Time since trawling
+
+- modphaeotst: Model not significant (p = 0.0868)
+
+```{r, echo = FALSE, warning = FALSE}
+
+modphaeotst <- contvarplot(resp = "Phaeopigments", depvar = "timesincetrawl", df = timedfphaeo, xlabz = "log (timesincetrawl)", log = TRUE)
+
+```
+
+### Trawling frequency
+
+```{r, echo = FALSE, warning = FALSE}
+
+modphaeotfr <- contvarplot(resp = "Phaeopigments", depvar = "heffortnum", df = fishdfphaeo, xlabz = "trawling effort", log = FALSE)
+
+```
+
+### Current velocity
+
+```{r, echo = FALSE, warning = FALSE}
+
+modphaeocur <- contvarplot(resp = "Phaeopigments", depvar = "cvel", df = dfshort, xlabz = "Current velocity", log = FALSE)
+
+```
+
+### Water depth
+
+```{r, echo = FALSE, warning = FALSE}
+
+modphaeowat <- contvarplot(resp = "Phaeopigments", depvar = "watdepth", df = dfshort, xlabz = "Water depth", log = FALSE)
+
+```
+
+### Primary productivity
+
+```{r, echo = FALSE, warning = FALSE}
+
+modphaeonpp  <- contvarplot(resp = "Phaeopigments", depvar = "nppsurf", df = dfshort, xlabz = "Primary productivity", log = FALSE)
+
+```
+
+### Season
+
+```{r, echo = FALSE, warning = FALSE}
+
+modphaeosea <- contvarplot(resp = "Phaeopigments", depvar = "hseason", df = dfshort, xlabz = "Season", log = FALSE)
+
+```
+
+### Habitat
+
+```{r, echo = FALSE, warning = FALSE}
+
+modphaeohab <- contvarplot(resp = "Phaeopigments", depvar = "hhabtype", df = dfshort, xlabz = "habitat", log = FALSE)
+
+```
+
+### Combine for output
+
+```{r}
+
+phaeo_mods <- rbind(modphaeotst, modphaeotfr, modphaeocur, modphaeowat, modphaeonpp, modphaeosea, modphaeohab)
+phaeo_mods[,c(4:11)] <- round(phaeo_mods[,c(4:11)], 3)
+write.table(phaeo_mods, file = "~/GitHub/Metastudy2/tables_final/phaeo_models.txt", sep = ",", quote = FALSE, row.names = F)
+
+```
+
+## Phytopigments
+
+```{r label, options}
+
+# Subset of our variable
+subphyto <- subset(dfshort, respvar == "Phytopigments")
+
+# filters out when too few individual studies. ==> Used for regression depth slices + variable.
+timedfphyto <- subset(subphyto, !is.na(subphyto$timesincetrawl))  # select known trawl times
+fishdfphyto <- subset(subphyto, !is.na(subphyto$heffortnum))        # first take out unknown for recovery models
+
+```
+
+### Time since trawling
+
+- modTOCtst: Model not significant (p = 0.0868)
+
+```{r, echo = FALSE, warning = FALSE}
+
+modphytotst <- contvarplot(resp = "Phytopigments", depvar = "timesincetrawl", df = timedfphyto, xlabz = "log (timesincetrawl)", log = TRUE)
+
+```
+
+### Trawling frequency
+
+```{r, echo = FALSE, warning = FALSE}
+
+modphytotfr <- contvarplot(resp = "Phytopigments", depvar = "heffortnum", df = fishdfphyto, xlabz = "trawling effort", log = FALSE)
+
+```
+
+### Current velocity
+
+```{r, echo = FALSE, warning = FALSE}
+
+modphytocur <- contvarplot(resp = "Phytopigments", depvar = "cvel", df = dfshort, xlabz = "Current velocity", log = FALSE)
+
+```
+
+### Water depth
+
+```{r, echo = FALSE, warning = FALSE}
+
+modphytowat <- contvarplot(resp = "Phytopigments", depvar = "watdepth", df = dfshort, xlabz = "Water depth", log = FALSE)
+
+```
+
+### Primary productivity
+
+```{r, echo = FALSE, warning = FALSE}
+
+modphytonpp  <- contvarplot(resp = "Phytopigments", depvar = "nppsurf", df = dfshort, xlabz = "Primary productivity", log = FALSE)
+
+```
+
+### Season
+
+```{r, echo = FALSE, warning = FALSE}
+
+modphytosea <- contvarplot(resp = "Phytopigmentsv", depvar = "hseason", df = dfshort, xlabz = "Season", log = FALSE)
+
+```
+
+### Habitat
+
+```{r, echo = FALSE, warning = FALSE}
+
+modphytohab <- contvarplot(resp = "Phytopigments", depvar = "hhabtype", df = dfshort, xlabz = "habitat", log = FALSE)
+
+```
+
+### Combine for output
+
+```{r}
+
+phyto_mods <- rbind(modphytotst, modphytotfr, modphytocur, modphytowat, modphytonpp, modphytosea, modphytohab)
+phyto_mods[,c(4:11)] <- round(phyto_mods[,c(4:11)], 3)
+write.table(phyto_mods, file = "~/GitHub/Metastudy2/tables_final/phyto_models.txt", sep = ",", quote = FALSE, row.names = F)
+
+```
+
+## Mean grain size
+
+```{r label, options}
+
+# Subset of our variable
+submgs <- subset(dfshort, respvar == "Mean grain size")
+
+# filters out when too few individual studies. ==> Used for regression depth slices + variable.
+timedfmgs <- subset(submgs, !is.na(submgs$timesincetrawl))  # select known trawl times
+fishdfmgs <- subset(submgs, !is.na(submgs$heffortnum))        # first take out unknown for recovery models
+
+```
+
+
+### Time since trawling
+
+- modmgstst: Model not significant (p = 0.0868)
+
+```{r, echo = FALSE, warning = FALSE}
+
+modmgstst <- contvarplot(resp = "Mean grain size", depvar = "timesincetrawl", df = timedfmgs, xlabz = "log (timesincetrawl)", log = TRUE)
+
+```
+
+### Trawling frequency
+
+```{r, echo = FALSE, warning = FALSE}
+
+modmgstfr <- contvarplot(resp = "Mean grain size", depvar = "heffortnum", df = fishdfmgs, xlabz = "trawling effort", log = FALSE)
+
+```
+
+### Current velocity
+
+```{r, echo = FALSE, warning = FALSE}
+
+modmgscur <- contvarplot(resp = "Mean grain size", depvar = "cvel", df = dfshort, xlabz = "Current velocity", log = FALSE)
+
+```
+
+### Water depth
+
+```{r, echo = FALSE, warning = FALSE}
+
+modmgswat <- contvarplot(resp = "Mean grain size", depvar = "watdepth", df = dfshort, xlabz = "Water depth", log = FALSE)
+
+```
+
+### Primary productivity
+
+```{r, echo = FALSE, warning = FALSE}
+
+modmgsnpp  <- contvarplot(resp = "Mean grain size", depvar = "nppsurf", df = dfshort, xlabz = "Primary productivity", log = FALSE)
+
+```
+
+### Season
+
+```{r, echo = FALSE, warning = FALSE}
+
+modmgssea <- contvarplot(resp = "Mean grain size", depvar = "hseason", df = dfshort, xlabz = "Season", log = FALSE)
+
+```
+
+### Habitat ==> Not possible
+
+```{r, echo = FALSE, warning = FALSE}
+
+modmgshab <- contvarplot(resp = "Mean grain size", depvar = "hhabtype", df = dfshort, xlabz = "habitat", log = FALSE)
+
+```
+
+### Combine for output
+
+```{r}
+
+mgs_mods <- rbind(modmgstst, modmgstfr, modmgscur, modmgswat, modmgsnpp, modmgssea)
+mgs_mods[,c(4:11)] <- round(mgs_mods[,c(4:11)], 3)
+write.table(mgs_mods, file = "~/GitHub/Metastudy2/tables_final/mgs_models.txt", sep = ",", quote = FALSE, row.names = F)
+
+```
+## Silt
+
+```{r label, options}
+
+# Subset of our variable
+subsilt <- subset(dfshort, respvar == "Silt")
+
+# filters out when too few individual studies. ==> Used for regression depth slices + variable.
+timedfsilt <- subset(subsilt, !is.na(subsilt$timesincetrawl))  # select known trawl times
+fishdfsilt <- subset(subsilt, !is.na(subsilt$heffortnum))        # first take out unknown for recovery models
+
+```
+
+### Time since trawling
+
+- modsilttst ==> Not possible, too limited dataset
+
+```{r, echo = FALSE, warning = FALSE}
+
+modsilttst <- contvarplot(resp = "Silt", depvar = "timesincetrawl", df = timedfsilt, xlabz = "log (timesincetrawl)", log = TRUE)
+
+```
+
+### Trawling frequency ==> Not possible, too limited dataset
+
+```{r, echo = FALSE, warning = FALSE}
+
+modsilttfr <- contvarplot(resp = "Silt", depvar = "heffortnum", df = fishdfsilt, xlabz = "trawling effort", log = FALSE)
+
+```
+
+### Current velocity
+
+```{r, echo = FALSE, warning = FALSE}
+
+modsiltcur <- contvarplot(resp = "Silt", depvar = "cvel", df = dfshort, xlabz = "Current velocity", log = FALSE)
+
+```
+
+### Water depth
+
+```{r, echo = FALSE, warning = FALSE}
+
+modsiltwat <- contvarplot(resp = "Silt", depvar = "watdepth", df = dfshort, xlabz = "Water depth", log = FALSE)
+
+```
+
+### Primary productivity
+
+```{r, echo = FALSE, warning = FALSE}
+
+modsiltnpp  <- contvarplot(resp = "Silt", depvar = "nppsurf", df = dfshort, xlabz = "Primary productivity", log = FALSE)
+
+```
+
+### Season
+
+```{r, echo = FALSE, warning = FALSE}
+
+modsiltsea <- contvarplot(resp = "Silt", depvar = "hseason", df = dfshort, xlabz = "Season", log = FALSE)
+
+```
+
+### Habitat
+
+```{r, echo = FALSE, warning = FALSE}
+
+modsilthab <- contvarplot(resp = "Silt", depvar = "hhabtype", df = dfshort, xlabz = "habitat", log = FALSE)
+
+```
+
+### Combine for output
+
+```{r}
+
+silt_mods <- rbind( modsiltcur, modsiltwat, modsiltnpp, modsiltsea, modsilthab)
+silt_mods[,c(4:11)] <- round(silt_mods[,c(4:11)], 3)
+write.table(silt_mods, file = "~/GitHub/Metastudy2/tables_final/silt_models.txt", sep = ",", quote = FALSE, row.names = F)
+
+```
+
+## Proteins
+
+```{r label, options}
+
+# Subset of our variable
+subprot <- subset(dfshort, respvar == "Proteins")
+
+# filters out when too few individual studies. ==> Used for regression depth slices + variable.
+timedfprot <- subset(subprot, !is.na(subprot$timesincetrawl))  # select known trawl times
+fishdfprot <- subset(subprot, !is.na(subprot$heffortnum))        # first take out unknown for recovery models
+
+```
+
+### Time since trawling
+
+- modprottst: Model not significant (p = 0.0868)
+
+```{r, echo = FALSE, warning = FALSE}
+
+modprottst <- contvarplot(resp = "Proteins", depvar = "timesincetrawl", df = timedfprot, xlabz = "log (timesincetrawl)", log = TRUE)
+
+```
+
+### Trawling frequency
+
+```{r, echo = FALSE, warning = FALSE}
+
+modprottfr <- contvarplot(resp = "Proteins", depvar = "heffortnum", df = fishdfprot, xlabz = "trawling effort", log = FALSE)
+
+```
+
+### Current velocity
+
+```{r, echo = FALSE, warning = FALSE}
+
+modprotcur <- contvarplot(resp = "Proteins", depvar = "cvel", df = dfshort, xlabz = "Current velocity", log = FALSE)
+
+```
+
+### Water depth
+
+```{r, echo = FALSE, warning = FALSE}
+
+modprotwat <- contvarplot(resp = "Proteins", depvar = "watdepth", df = dfshort, xlabz = "Water depth", log = FALSE)
+
+```
+
+### Primary productivity
+
+```{r, echo = FALSE, warning = FALSE}
+
+modprotnpp  <- contvarplot(resp = "Proteins", depvar = "nppsurf", df = dfshort, xlabz = "Primary productivity", log = FALSE)
+
+```
+
+### Season
+
+```{r, echo = FALSE, warning = FALSE}
+
+modprotsea <- contvarplot(resp = "Proteins", depvar = "hseason", df = dfshort, xlabz = "Season", log = FALSE)
+
+```
+
+### Habitat
+
+```{r, echo = FALSE, warning = FALSE}
+
+modprothab <- contvarplot(resp = "Proteins", depvar = "hhabtype", df = dfshort, xlabz = "habitat", log = FALSE)
+
+```
+
+### Combine for output
+
+```{r}
+
+prot_mods <- rbind(modprottst, modprottfr, modprotcur, modprotwat, modprotnpp, modprotsea, modprothab)
+prot_mods[,c(4:11)] <- round(prot_mods[,c(4:11)], 3)
+write.table(prot_mods, file = "~/GitHub/Metastudy2/tables_final/prot_models.txt", sep = ",", quote = FALSE, row.names = F)
+
+```
+
+## NHx
+
+```{r label, options}
+
+# Subset of our variable
+subnhx <- subset(dfshort, respvar == "NHx")
+
+# filters out when too few individual studies. ==> Used for regression depth slices + variable.
+timedfnhx <- subset(subnhx, !is.na(subnhx$timesincetrawl))  # select known trawl times
+fishdfnhx <- subset(subnhx, !is.na(subnhx$heffortnum))        # first take out unknown for recovery models
+
+```
+
+
+### Time since trawling
+
+- modNHxtst ==> Not possible, too limited dataset
+
+```{r, echo = FALSE, warning = FALSE}
+
+modNHxtst <- contvarplot(resp = "NHx", depvar = "timesincetrawl", df = timedfnhx, xlabz = "log (timesincetrawl)", log = TRUE)
+
+```
+
+### Trawling frequency ==> Not possible, too limited dataset
+
+```{r, echo = FALSE, warning = FALSE}
+
+modNHxtfr <- contvarplot(resp = "NHx", depvar = "heffortnum", df = fishdfnhx, xlabz = "trawling effort", log = FALSE)
+
+```
+
+### Current velocity
+
+```{r, echo = FALSE, warning = FALSE}
+
+modNHxcur <- contvarplot(resp = "NHx", depvar = "cvel", df = dfshort, xlabz = "Current velocity", log = FALSE)
+
+```
+
+### Water depth
+
+```{r, echo = FALSE, warning = FALSE}
+
+modNHxwat <- contvarplot(resp = "NHx", depvar = "watdepth", df = dfshort, xlabz = "Water depth", log = FALSE)
+
+```
+
+### Primary productivity
+
+```{r, echo = FALSE, warning = FALSE}
+
+modNHxnpp  <- contvarplot(resp = "NHx", depvar = "nppsurf", df = dfshort, xlabz = "Primary productivity", log = FALSE)
+
+```
+
+### Season
+
+```{r, echo = FALSE, warning = FALSE}
+
+modNHxsea <- contvarplot(resp = "NHx", depvar = "hseason", df = dfshort, xlabz = "Season", log = FALSE)
+
+```
+
+### Habitat
+
+```{r, echo = FALSE, warning = FALSE}
+
+modNHxhab <- contvarplot(resp = "NHx", depvar = "hhabtype", df = dfshort, xlabz = "habitat", log = FALSE)
+
+```
+
+### Combine for output
+
+```{r}
+
+NHx_mods <- rbind(modNHxcur, modNHxwat, modNHxnpp, modNHxsea, modNHxhab)
+NHx_mods[,c(4:11)] <- round(NHx_mods[,c(4:11)], 3)
+write.table(NHx_mods, file = "~/GitHub/Metastudy2/tables_final/NHx_models.txt", sep = ",", quote = FALSE, row.names = F)
+
+```
+
+## Figure 4: Regressions --> TODO.
+
+Here you should select whichever regressions we think are nice and should be shown in the manuscript.
+
+- Select your subset of a given variable
+- Select the depth stratum you want to represent
+- Add a model of the following form:     
+    mod   <- rma.mv(yi = lnRR, V = VarLnRR, mods = ~COVARIABLE, random = ~ 1|article_type_id, data = subset_variable_depthstratum, method = "REML", control=list(rel.tol=1e-8))
+
+
+
+## Figure X: Heatmaps
+
+The list of mods that is produced here, is also what should be in the manuscript --> supplementary information to guide the regressions.
+
+## Heatmaps
+
+```{r label, options}
+
+mods <- list(
+Chla_mods,
+phyto_mods,
+phaeo_mods,
+toc_mods,
+tn_mods,
+mgs_mods,
+silt_mods,
+prot_mods,
+NHx_mods
+)
+
+hm_chla  <- plothmcoeff(mods[[1]])
+hm_phyt  <- plothmcoeff(mods[[2]])
+hm_phae  <- plothmcoeff(mods[[3]])
+hm_toc   <- plothmcoeff(mods[[4]])
+hm_tn    <- plothmcoeff(mods[[5]])
+hm_mgs   <- plothmcoeff(mods[[6]])
+hm_silt  <- plothmcoeff(mods[[7]])
+hm_prot  <- plothmcoeff(mods[[8]])
+hm_NHx   <- plothmcoeff(mods[[9]])
+
+gradplot <- hm_chla + hm_phyt + hm_phae + hm_toc + hm_tn + hm_prot + hm_mgs + hm_silt + hm_NHx
+
+gradplot <- gradplot +  plot_annotation(tag_levels = "A") +
+  plot_layout(guides = "collect", ncol = 3, byrow = TRUE)
+
+gradplot
+
+ggsave("~/GitHub/Metastudy2/figures_final/Heatmap_coefficients.png", units = "in", height = 13, width = 16)  
+
+hmi_chla  <- plothmint(mods[[1]])
+hmi_phyt  <- plothmint(mods[[2]])
+hmi_phae  <- plothmint(mods[[3]])
+hmi_toc   <- plothmint(mods[[4]])
+hmi_tn    <- plothmint(mods[[5]])
+hmi_mgs   <- plothmint(mods[[6]])
+hmi_silt  <- plothmint(mods[[7]])
+hmi_prot  <- plothmint(mods[[8]])
+hmi_NHx   <- plothmint(mods[[9]])
+
+gradploti <- hmi_chla + hmi_phyt + hmi_phae + hmi_toc + hmi_tn + hmi_prot + hmi_mgs + hmi_silt + hmi_NHx
+
+gradploti <- gradploti +  plot_annotation(tag_levels = "A") +
+  plot_layout(guides = "collect", ncol = 3, byrow = TRUE)
+
+gradploti
+
+ggsave("~/GitHub/Metastudy2/figures_final/Heatmap_intercepts.png", units = "in", height = 13, width = 16)  
+
+```
+

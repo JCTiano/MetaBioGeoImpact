@@ -1,0 +1,35 @@
+Var,Covar,Strata,QE,QM,QEp,QMp,int_est,int_sig,coeff_est,coeff_sig
+TOC,log (timesincetrawl),Surface,94.907,0.226,0,0.635,-0.21,0.012,0.023,0.635
+TOC,log (timesincetrawl),Subsurface,45.672,0.166,0.001,0.683,0.038,0.756,-0.016,0.683
+TOC,log (timesincetrawl),Deep,9.517,0.132,0.484,0.716,-0.197,0.054,0.039,0.716
+TOC,log (timesincetrawl),Full sample,75.827,3.086,0,0.079,0.094,0.554,-0.166,0.079
+TOC,trawling effort,Surface,94.231,0,0,0.985,-0.188,0.01,0,0.985
+TOC,trawling effort,Subsurface,49.508,0.956,0.001,0.328,0.022,0.835,-0.003,0.328
+TOC,trawling effort,Deep,10.08,1.24,0.815,0.266,-0.166,0.006,-0.001,0.266
+TOC,trawling effort,Very deep,5.194,0.422,0.878,0.516,-0.2,0.044,0.001,0.516
+TOC,trawling effort,Full sample,9.102,0.554,0.334,0.457,0.173,0.702,-0.052,0.457
+TOC,Current velocity,Surface,188.483,0.546,0,0.46,-0.208,0.063,1.113,0.46
+TOC,Current velocity,Subsurface,149.794,8.593,0,0.003,-0.277,0.006,2.75,0.003
+TOC,Current velocity,Deep,84.958,0.728,0,0.394,-0.21,0.336,2.332,0.394
+TOC,Current velocity,Very deep,26.623,0.466,0.592,0.495,-0.218,0.045,1.578,0.495
+TOC,Current velocity,Full sample,152.849,0.347,0,0.556,0.301,0.486,-1.682,0.556
+TOC,Water depth,Surface,203.963,1.881,0,0.17,-0.184,0.007,0,0.17
+TOC,Water depth,Subsurface,184.484,0.85,0,0.357,0.04,0.638,0,0.357
+TOC,Water depth,Deep,79.404,2.592,0,0.107,-0.201,0.196,0.001,0.107
+TOC,Water depth,Very deep,26.356,0.22,0.606,0.639,-0.126,0.02,0,0.639
+TOC,Water depth,Full sample,89.101,7.048,0,0.008,-0.448,0.059,0.021,0.008
+TOC,Primary productivity,Surface,177.92,2.534,0,0.111,-0.081,0.201,-3.784,0.111
+TOC,Primary productivity,Subsurface,176.56,0.813,0,0.367,-0.094,0.437,12.055,0.367
+TOC,Primary productivity,Deep,86.484,0.295,0,0.587,0.003,0.984,-7.838,0.587
+TOC,Primary productivity,Very deep,25.718,0.932,0.64,0.334,-0.175,0,6.543,0.334
+TOC,Primary productivity,Full sample,135.615,0.024,0,0.877,0.112,0.713,-1.11,0.877
+TOC,Season,Surface,176.489,1.775,0,0.777,-0.127,0.136,0.022,0.81
+TOC,Season,Subsurface,189.483,0.621,0,0.961,0.006,0.955,0.027,0.815
+TOC,Season,Deep,78.817,0.544,0,0.909,0.038,0.86,-0.038,0.899
+TOC,Season,Very deep,22.977,4.059,0.686,0.255,0.091,0.895,-0.213,0.756
+TOC,Season,Full sample,94.606,2.453,0,0.484,0.071,0.868,0.188,0.668
+TOC,habitat,Surface,208.464,0.038,0,0.845,-0.121,0.059,-0.022,0.845
+TOC,habitat,Subsurface,167.857,2.201,0,0.138,-0.083,0.261,0.182,0.138
+TOC,habitat,Deep,85.819,0.616,0,0.432,-0.016,0.88,-0.197,0.432
+TOC,habitat,Very deep,26.771,0.246,0.584,0.62,-0.149,0,0.192,0.62
+TOC,habitat,Full sample,74.443,2.311,0,0.128,0.335,0.165,-0.522,0.128

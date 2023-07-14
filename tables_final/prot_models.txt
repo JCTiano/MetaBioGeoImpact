@@ -1,0 +1,20 @@
+Var,Covar,Strata,QE,QM,QEp,QMp,int_est,int_sig,coeff_est,coeff_sig
+Proteins,log (timesincetrawl),Surface,74.967,6.382,0,0.012,-0.696,0.001,0.418,0.012
+Proteins,trawling effort,Surface,81.191,0.664,0,0.415,-0.407,0.059,0.004,0.415
+Proteins,trawling effort,Subsurface,1.535,0.972,0.82,0.324,-0.163,0.024,-0.002,0.324
+Proteins,trawling effort,Deep,9.341,0.762,0.155,0.383,-0.062,0.389,-0.001,0.383
+Proteins,Current velocity,Surface,73.648,0.798,0,0.372,-0.532,0.055,2.596,0.372
+Proteins,Current velocity,Subsurface,1.55,0.957,0.818,0.328,-0.421,0.082,1.855,0.328
+Proteins,Current velocity,Deep,9.335,0.767,0.156,0.381,-0.205,0.113,1.031,0.381
+Proteins,Water depth,Surface,79.579,0.96,0,0.327,-0.419,0.021,0.001,0.327
+Proteins,Water depth,Subsurface,1.485,1.022,0.829,0.312,-0.16,0.03,0,0.312
+Proteins,Water depth,Deep,9.359,0.744,0.154,0.388,-0.06,0.415,0,0.388
+Proteins,Primary productivity,Surface,44.401,17.183,0,0,-0.072,0.456,-7.382,0
+Proteins,Primary productivity,Subsurface,1.46,1.048,0.834,0.306,-0.355,0.038,9.744,0.306
+Proteins,Primary productivity,Deep,9.369,0.734,0.154,0.391,-0.163,0.069,5.145,0.391
+Proteins,Season,Surface,79.823,0.349,0,0.84,-0.204,0.466,-0.223,0.573
+Proteins,Season,Subsurface,1.535,0.972,0.82,0.324,-0.165,0.021,-0.178,0.324
+Proteins,Season,Deep,9.341,0.762,0.155,0.383,-0.063,0.377,-0.098,0.383
+Proteins,habitat,Surface,95.643,0.004,0,0.949,-0.322,0.115,-0.028,0.949
+Proteins,habitat,Subsurface,1.064,1.443,0.9,0.23,-0.259,0.002,0.16,0.23
+Proteins,habitat,Deep,9.615,0.47,0.142,0.493,-0.093,0.127,-0.149,0.493

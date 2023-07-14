@@ -297,7 +297,7 @@ fulldata$depths[fulldata$depths %in% c("4-6", "4-8", "5-10", "5-6", "5-7", "6-10
 fulldata$depths[fulldata$depths %in% c("10-11", "10-12", "10-15", "11-12", "12-13", "13-14", "14-15", "15-16", "15-20", "16-17", "17-18", "18-19", "19-20", "20-21", "21-22", "22-23", "23-24", "24-25", "25-26", "26-27", "27-28", "28-29", "29-30", "30-31", "31-32", "32-33", "33-34", "34-35", "35-36", "36-37", "37-38", "38-39", "39-40", "40-41", "41-42", "42-43")]   = "Very deep"  # > 10
 fulldata$depths[fulldata$depths %in% c("0-10", "Full core", "Grab sample", "in-situ incubations", "on-board incubations")]   = "Full sample"
 
-fulldata$depths <- factor(fulldata$depths, levels = c("Full sample", "Very deep", "Deep", "Subsurface", "Surface"))
+fulldata$depths <- factor(fulldata$depths, levels = c("Surface", "Subsurface", "Deep", "Very deep", "Full sample"))
 
 ```
 
@@ -403,7 +403,7 @@ seasonplot <- ggplot(data = season, aes(x = season[,1])) +
               #ylim(0, 30) +
               theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
               #theme(plot.title = element_text(hjust = 0.5)) + 
-              labs(title="B  Seasonality", y = "Times included in study design", x = " ")
+              labs(title="D  Seasonality", y = "Times included in study design", x = " ")
 
 ## Waterdepth type
 depthplot <- ggplot(data = depth, aes(x = as.numeric(depth[,1]))) + 
@@ -414,7 +414,7 @@ depthplot <- ggplot(data = depth, aes(x = as.numeric(depth[,1]))) +
               theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   scale_x_continuous(breaks = round(seq(0, max(comz$Depth), by = 50))) +
               #theme(plot.title = element_text(hjust = 0.5)) + 
-              labs(title="D  Water depth", y = "", x = " ")
+              labs(title="B  Water depth", y = "", x = " ")
 
 ## Slice depth
 ## Sediment type
@@ -443,8 +443,8 @@ design <- "4444444444444
            4444444444444
            4444444444444
            4444444444444
-           1111122333333
-           1111122333333
+           3333332211111
+           3333332211111
 "
 
 # Set the heights of the plots to be equal
@@ -494,8 +494,6 @@ stratplot <- ggplot(data = comz2, aes(x = Samplestyle)) +
               labs(title="Sampling method", y = "No. occurrences", x = " ")
 stratplot
 ggsave("../figures/final/meta_info_sampleinfo.png", units = "in", height = 4, width = 4)
-
-
 
 ```
 
@@ -873,9 +871,11 @@ ggsave("../figures/final/fulldf_phosphate_sediment.png", units = "in", height = 
 
 ```{r}
 
+varstab <- c("Chl-a", "Phaeopigments", "Phytopigments", "TIC", "TOC", "TN", "TOC/TN", "Dry bulk density", "Silt", "Mud content (< 63 µm)", "Mean grain size", "DIC", "Oxygen consumption", "NHx", "NOx", "Phosphate")
+
 dfsumfull <- NULL
-i <- "TOC"
-for(i in unique(table_fulldata$Var1)){
+
+for(i in varstab){
   s <- subset(fulldata, fulldata$Response.variable == i)
   allmean <- mean(s$lnRR)
   allsd   <- sd(s$lnRR)
@@ -883,6 +883,13 @@ for(i in unique(table_fulldata$Var1)){
   allmin <- min(s$lnRR)
   allmax <- max(s$lnRR)
   alllength <- length(s$lnRR)
+  all       <- data.frame("name"   = "All"    ,
+                          "mean"   = round(allmean, 3)  ,
+                          "median" = round(allmedian, 3),
+                          "min"    = round(allmin, 3)   ,
+                          "max"    = round(allmax, 3)   ,
+                          "sd"     = round(allsd, 3)    ,
+                          "nobs"   = alllength)
   
   sliceavg <- aggregate(s$lnRR, by = list(s$depths), FUN = mean)
   slicesd <- aggregate(s$lnRR, by = list(s$depths), FUN = sd)
@@ -890,8 +897,20 @@ for(i in unique(table_fulldata$Var1)){
   slicemin <- aggregate(s$lnRR, by = list(s$depths), FUN = min)
   slicemax <- aggregate(s$lnRR, by = list(s$depths), FUN = max)
   slicelength <- aggregate(s$lnRR, by = list(s$depths), FUN = length)
+  slice     <- data.frame("name"   = sliceavg$Group.1,
+                          "mean"   = round(sliceavg$x, 3)   ,
+                          "median" = round(slicemedian$x, 3),
+                          "min"    = round(slicemin$x, 3)   ,
+                          "max"    = round(slicemax$x, 3)   ,
+                          "sd"     = round(slicesd$x, 3)    ,
+                          "nobs"   = slicelength$x)
+  newdf <- rbind(all, slice)
+  newdf$var <- rep(i, length(newdf$name))
   
+  dfsumfull <- rbind(dfsumfull, newdf)
 }
+
+write.table(dfsumfull, file = "../tables/dfsumfull.txt", sep = ",", quote = FALSE, row.names = F)
 
 
 ```
@@ -902,9 +921,11 @@ for(i in unique(table_fulldata$Var1)){
 
 ```{r, echo = FALSE, warning=FALSE}
 
-ggplot(subset(fulldata, Response.variable %in% c("Chl-a", "Phaeopigments", "Phytopigments")), 
-       aes(x = lnRR, y = Response.variable, fill = depths)) +
-  scale_fill_viridis_d(option = "E", alpha = 0.4) +
+fulldata$depths2 <- factor(fulldata$depths, levels = rev(levels(fulldata$depths)))
+
+pigdat <- ggplot(subset(fulldata, Response.variable %in% c("Chl-a", "Phaeopigments", "Phytopigments")), 
+       aes(x = lnRR, y = Response.variable, fill = depths2)) +
+  scale_fill_viridis_d(option = "E", alpha = 0.4, direction = 1) +
     geom_boxplot() +
   #geom_sina(alpha = 0.2, position=position_dodge(0.8)) + 
   geom_vline(xintercept = 0) + 
@@ -914,12 +935,13 @@ ggplot(subset(fulldata, Response.variable %in% c("Chl-a", "Phaeopigments", "Phyt
   geom_text(x = 1.4, y = 2, label = "italic(n) == 54", parse = TRUE) +
   geom_text(x = 1.4, y = 3, label = "italic(n) == 45", parse = TRUE) +
   labs(title="Pigments",
-        x ="Log-response ratio", y = "  ") + 
+        x ="Log-response ratio", y = "  ", fill = "Strata") + 
   theme_agile(plot_grid = FALSE) + 
   theme(
         axis.text.y  = element_text(size = 14, family = "sans"),
         axis.text.x  = element_text(size = 14, family = "sans"),
         axis.title.x = element_text(size = 14, family = "sans")) + 
+  guides(fill = guide_legend(reverse = TRUE)) +
   theme_classic()
 
 ggsave("../figures/final/fulldf_pigments.png", units = "in", height = 5, width = 8)
@@ -930,20 +952,21 @@ ggsave("../figures/final/fulldf_pigments.png", units = "in", height = 5, width =
 
 ```{r, echo = FALSE, warning=FALSE}
 
-ggplot(subset(fulldata, Response.variable %in% c("Dry bulk density", "Silt", "Mud content (< 63 µm)", "Mean grain size")), 
-       aes(x = lnRR, y = Response.variable, fill = depths)) +
+seddat <- ggplot(subset(fulldata, Response.variable %in% c("Dry bulk density", "Silt", "Mud content (< 63 µm)", "Mean grain size")), 
+       aes(x = lnRR, y = Response.variable, fill = depths2)) +
   scale_fill_viridis_d(option = "E", alpha = 0.4) +
     geom_boxplot() +
   # geom_sina(alpha = 0.2, position=position_dodge(0.8)) + 
   geom_vline(xintercept = 0) + 
   xlim(-1.5, 1.5) +
+    guides(fill = guide_legend(reverse = TRUE)) +
   stat_summary(fun = median, geom = "crossbar", width = 0.3, color = "black", show.legend = FALSE, position=position_dodge(0.8)) +
   geom_text(x = 1.4, y = 4, label = "italic(n) == 168", parse = TRUE) +
   geom_text(x = 1.4, y = 3, label = "italic(n) == 34", parse = TRUE) +
   geom_text(x = 1.4, y = 2, label = "italic(n) == 85", parse = TRUE) +
   geom_text(x = 1.4, y = 1, label = "italic(n) == 271", parse = TRUE) +
   labs(title="Sediment characteristics",
-        x ="Log-response ratio", y = "  ") + 
+        x ="Log-response ratio", y = "  ", fill = "Strata") + 
   theme_agile(plot_grid = FALSE) + 
   theme(axis.text.y  = element_text(size = 14, family = "sans"),
         axis.text.x  = element_text(size = 14, family = "sans"),
@@ -958,11 +981,12 @@ ggsave("../figures/final/fulldf_sediment.png", units = "in", height = 6, width =
 
 ```{r, echo = FALSE, warning=FALSE}
 
-ggplot(subset(fulldata, Response.variable %in% c("TIC", "TOC", "TN", "TOC/TN", "OM (LOI)")), 
-       aes(x = lnRR, y = Response.variable, fill = depths)) +
+carbdat <- ggplot(subset(fulldata, Response.variable %in% c("TIC", "TOC", "TN", "TOC/TN", "OM (LOI)")), 
+       aes(x = lnRR, y = Response.variable, fill = depths2)) +
   scale_fill_viridis_d(option = "E", alpha = 0.4) +
     geom_boxplot() +
   geom_vline(xintercept = 0) + 
+    guides(fill = guide_legend(reverse = TRUE)) +
   stat_summary(fun = median, geom = "crossbar", width = 0.3, color = "black", show.legend = FALSE, position=position_dodge(0.8)) +
   geom_text(x = 3.8, y = 5, label = "italic(n) == 194", parse = TRUE) +
   geom_text(x = 3.8, y = 4, label = "italic(n) == 255", parse = TRUE) +
@@ -970,7 +994,7 @@ ggplot(subset(fulldata, Response.variable %in% c("TIC", "TOC", "TN", "TOC/TN", "
   geom_text(x = 3.8, y = 2, label = "italic(n) == 85", parse = TRUE) +
   geom_text(x = 3.8, y = 1, label = "italic(n) == 21", parse = TRUE) +
   labs(title="C in sediment",
-        x ="Log-response ratio", y = "  ") +
+        x ="Log-response ratio", y = "  ", fill = "Strata") +
   xlim(-2.6, 4) + 
   theme_agile(plot_grid = FALSE) + 
   theme(axis.text.y  = element_text(size = 14, family = "sans"),
@@ -986,11 +1010,12 @@ ggsave("../figures/final/fulldf_cinsediment.png", units = "in", height = 6, widt
 
 ```{r, echo = FALSE, warning=FALSE}
 
-ggplot(subset(fulldata, Response.variable %in% c("DIC", "Oxygen consumption", "NHx", "NOx", "Phosphate")), 
-       aes(x = lnRR, y = Response.variable, fill = depths)) +
+bgcdat <- ggplot(subset(fulldata, Response.variable %in% c("DIC", "Oxygen consumption", "NHx", "NOx", "Phosphate")), 
+       aes(x = lnRR, y = Response.variable, fill = depths2)) +
   scale_fill_viridis_d(option = "E", alpha = 0.4) +
     geom_boxplot() +
   geom_vline(xintercept = 0) + 
+    guides(fill = guide_legend(reverse = TRUE)) +
   stat_summary(fun = median, geom = "crossbar", width = 0.3, color = "black", show.legend = FALSE, position=position_dodge(0.8)) +
   geom_text(x = 2.8, y = 5, label = "italic(n) == 194", parse = TRUE) +
   geom_text(x = 2.8, y = 4, label = "italic(n) == 255", parse = TRUE) +
@@ -998,7 +1023,7 @@ ggplot(subset(fulldata, Response.variable %in% c("DIC", "Oxygen consumption", "N
   geom_text(x = 2.8, y = 2, label = "italic(n) == 85", parse = TRUE) +
   geom_text(x = 2.8, y = 1, label = "italic(n) == 21", parse = TRUE) +
   labs(title="Biogeochemistry",
-        x ="Log-response ratio", y = "  ") + 
+        x ="Log-response ratio", y = "  ", fill = "Strata") + 
   xlim(-3, 3.5) + 
   theme_agile(plot_grid = FALSE) + 
   theme(axis.text.y  = element_text(size = 14, family = "sans"),
@@ -1058,6 +1083,16 @@ combined_plots <- combined_plots +
 combined_plots
 ggsave("../figures/final/fulldf_mainpars_sediment.png", units = "in", height = 8, width = 12)  
 
+combinedplots2 <- (pigdat + theme(plot.margin = unit(c(5,5,5,5), "pt"))) + 
+                  (seddat + theme(plot.margin = unit(c(5,5,5,5), "pt"))) + 
+                  (carbdat + theme(plot.margin = unit(c(5,5,5,5), "pt"))) + 
+                  (bgcdat + theme(plot.margin = unit(c(5,5,5,5), "pt"))) + 
+  plot_annotation(tag_levels = "A") + 
+  plot_layout(guides = "collect", ncol = 1)
+
+combinedplots2
+ggsave("../figures/final/fulldf_mainpars_sediment2.png", units = "in", height = 18, width = 8)
+
 ```
 
 # SELECTED ROWS
@@ -1065,7 +1100,7 @@ ggsave("../figures/final/fulldf_mainpars_sediment.png", units = "in", height = 8
 * Proceeding with the random effects assumption (Borenstein et al., chapter 12).
 
 ## Summarizing data
-3
+
  * Calculates the mean and variance around true response ratio assuming a random effects model.
  * Average effect size +- confidence interval is calculated per variable --> Not taking into account slice depths.
 
@@ -1397,6 +1432,72 @@ ggsave("../figures/final/sel_trueresponse.png", units = "in", height = 6, width 
 
 ```
 
+```{r label, options}
+
+load(file = "../r_objects/SummaryEF_Gradients.Rda")
+
+gradplot <- data.frame(v = c("TOC", "Chl-a", "OM (LOI)", "TN"), M = sumData$M, LL = sumData$LowerBound, UL = sumData$UpperBound, pval = NA, n = sumData$Observations, s = sumData$Studies)
+
+gradplot$estimate_lab <- paste0(gradplot$M, " [", gradplot$LL, " - ", gradplot$UL, "]")
+gradplot$ns           <- paste0(gradplot$n, " (", gradplot$s, ")")
+
+## Preparing plot
+p <- ggplot(data = gradplot, aes(y = factor(v, levels = v))) +
+  geom_point(aes(x = M), shape = 15, size = 3) +
+  geom_linerange(aes(xmin = LL, xmax = UL)) +
+  geom_vline(xintercept = 0, linetype="dashed") +
+  labs(x="Standardized mean difference", y="") + 
+  coord_cartesian(ylim=c(1,5), xlim=c(-3, 3.5)) +  
+  theme_classic() +
+  annotate("text", x = -1, y = 5, label = "Decrease", size = 3.5) +
+  annotate("text", x = 1, y = 5, label = "Increase", size = 3.5) + 
+    theme(axis.line.y = element_blank(),
+        axis.ticks.y= element_blank(),
+        axis.text.y= element_blank(),
+        axis.title.y= element_blank())
+
+## Mutate table a bit for plotting.
+subover2 <- gradplot
+
+subover2 <- rbind(subover2, data.frame(v = "Variable", M = "", LL = "", UL = "", pval = "p-value",n = "", s = "", estimate_lab = "SMD [95% CI]", ns = "n Obs. (studies)"))
+subover2$pval[subover2$pval == 1000] <- "<0.001" 
+
+pleft <- ggplot(data = subover2, aes(y = v)) +
+  geom_text(aes(x = 0, label = v), hjust = 0, fontface = "bold", size = 3.5) +
+  geom_text(aes(x = 1, label = estimate_lab), hjust = 0, size = 3.5,
+            fontface = ifelse(subover2$estimate_lab == "SMD [95% CI]", "bold", "plain")) +
+  theme_void() +
+  coord_cartesian(xlim = c(0, 4), ylim=c(1, 5))
+
+# Plot for p values
+pright <- ggplot(data = subover2) +
+  geom_text(aes(x = 0, y = v, label = ns), hjust = 0, size = 3.5,
+            fontface = ifelse(subover2$ns == "n Obs. (studies)", "bold", "plain")) + 
+  theme_void() +
+  coord_cartesian(ylim=c(1, 5))
+
+
+layout <- c(
+  area(t = 0, b = 8, l = 0, r = 12), # left plot, starts at the top of the page (0) and goes 30 units down and 3 units to the right
+  area(t = 1, b = 8, l = 8,  r = 14), # middle plot starts a little lower (t=1) because there's no title. starts 1 unit right of the left plot (l=4, whereas left plot is r=3), goes to the bottom of the page (30 units), and 6 units further over from the left plot (r=9 whereas left plot is r=3)
+  area(t = 0, b = 8, l = 14, r = 17) # right most plot starts at top of page, begins where middle plot ends (l=9, and middle plot is r=9), goes to bottom of page (b=30), and extends two units wide (r=11)
+)
+# 
+# layout <- c(
+#   area(t = 0, b = 28, l = 0, r = 10), # left plot, starts at the top of the page (0) and goes 30 units down and 3 units to the right
+#   area(t = 1, b = 28, l = 8,  r = 14), # middle plot starts a little lower (t=1) because there's no title. starts 1 unit right of the left plot (l=4, whereas left plot is r=3), goes to the bottom of the page (30 units), and 6 units further over from the left plot (r=9 whereas left plot is r=3)
+#   area(t = 0, b = 28, l = 14, r = 16) # right most plot starts at top of page, begins where middle plot ends (l=9, and middle plot is r=9), goes to bottom of page (b=30), and extends two units wide (r=11)
+# )
+
+
+# final plot arrangement
+pleft + p + pright + plot_layout(design = layout)
+
+ggsave("../figures/final/sel_gradstudies_black.png", units = "in", height = 2, width = 10)
+
+
+```
+
 ### Organic matter stuff
 
 ```{r, echo = FALSE}
@@ -1719,8 +1820,8 @@ colrestexp   <- rep("darkorange3", 8)
 
 ## Preparing plot
 p <- ggplot(data = suballexp, aes(y = v, shape = stype)) +
-  geom_point(aes(x = M, shape = stype), size = 2.5, colour = colallexp, position = position_dodge(width = 0.9)) +
-  geom_linerange(aes(xmin = LL, xmax = UL), colour = colallexp,  position = position_dodge(width = 0.9)) + 
+  geom_point(aes(x = M, shape = stype), size = 2.5, colour = rev(colallexp), position = position_dodge(width = 0.9)) +
+  geom_linerange(aes(xmin = LL, xmax = UL), colour = rev(colallexp),  position = position_dodge(width = 0.9)) + 
   geom_vline(xintercept = 0, linetype="dashed") +
   labs(x="Log response ratio", y="", shape = "Study type") + 
   coord_cartesian(ylim=c(1,15), xlim=c(-6, 6)) +  
@@ -2140,6 +2241,11 @@ all <- dfshort
 
 # Remove TODEBUG
 
+df <- dfshort
+varz <- vars
+i <- "Chl-a"
+j <- "Surface"
+
 summarizer_varslice <- function(df, varz) {
   
   dfn <- NA
@@ -2151,9 +2257,9 @@ summarizer_varslice <- function(df, varz) {
     for(j in (unique(tt$depths))){
       
       dd <- subset(tt, tt$depths == j)
-      dd <- escalc(data = dd, yi = lnRR, vi = VarLnRR)
-      varcov <- vcalc(vi = vi, cluster = article_type_id, data = dd, nearpd = TRUE)
-      avg <- aggregate(x = dd, cluster = article_type_id, V = varcov, struct = "CS", weighted = FALSE)
+      dd <- escalc(data = dd, yi = lnRR, vi = VarLnRR) # Just transforming in escalc object
+      varcov <- vcalc(vi = vi, cluster = article_type_id, data = dd, nearpd = TRUE) # cluster variances in variance-covariance matrix per study type for use in aggregate.
+      avg <- aggregate(x = dd, cluster = article_type_id, V = varcov, struct = "CS", weighted = FALSE) # aggregate effect sizes in single study effect size.
 
       dfn <- rbind(dfn, avg)
       
@@ -2166,6 +2272,9 @@ out <- summarizer_varslice(dfshort, varz = vars)
 
 out$depths <- factor(out$depths, levels = c("Surface", "Subsurface", "Deep", "Very deep", "Full sample"))
 out <- out[order(out$respvar, out$yi, decreasing = TRUE),]
+
+plotdepthslices(var = "TOC", model = modTOCslice, avgdf = out, maintitle = "Organic carbon", miny = -1.1, maxy = 2, textpos = 1.5)
+
 
 ```
 
@@ -2217,6 +2326,44 @@ plotdepthslices(var = "TOC", model = modTOCslice, avgdf = out, maintitle = "Orga
 modTOC
 modTOCslice
 
+# model <- modTOCslice
+# var <- "TOC"
+# name <- "modTOCslice"
+# 
+# 
+# modsum <- function(name , model, var){ # model = modelname
+#   name <- name
+#   tau2 <- model[["tau2"]]
+#   I2   <- model[["I2"]]
+#   H2   <- model[["H2"]]
+#   R2   <- model[["R2"]]
+#   if(is.null(R2)){R2 <- 0}
+#   QE   <- model[["QE"]]
+#   QEp  <- model[["QEp"]]
+#   QM   <- model[["QM"]]
+#   QMp  <- model[["QMp"]]
+#   meth <- model[["method"]]
+#   mod  <- model[["model"]]
+#   
+#   newdf <- data.frame("variable" = var ,
+#                       "name"     = name,
+#                       "tau2"     = tau2,
+#                       "I2"       = I2  ,
+#                       "H2"       = H2  ,
+#                       "R2"       = R2  ,
+#                       "QE"       = QE  ,
+#                       "QEp"      = QEp ,
+#                       "QM"       = QM  ,
+#                       "QMp"      = QMp ,
+#                       "meth"     = meth,
+#                       "mod"      = mod)
+#   return(newdf)
+# }
+# 
+# modelDF <- NULL
+# 
+# modelDF <- rbind(modsum(name = "modTOC", var = "TOC", model = modTOC))
+
 ```
 
 #### Time since trawling
@@ -2225,14 +2372,11 @@ modTOCslice
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "TOC", depvar = "timesincetrawl", df = timedf, xlabz = "log (timesincetrawl)", log = TRUE)
+modTOCtst <- contvarplot(resp = "TOC", depvar = "timesincetrawl", df = timedf, xlabz = "log (timesincetrawl)", log = TRUE)
 
-modTOCtst <- rma.mv(lnRR, V = VarLnRR, data = timedftoc, mods = ~depths*log(timesincetrawl+1), random = ~ 1|article_type_id, method = "REML")
-modTOCtsti <- rma.mv(lnRR, V = VarLnRR, data = timedftoc, mods = ~depths*log(timesincetrawl+1)-1, random = ~ 1|article_type_id, method = "REML")
+modTOCtst2 <- rma.uni(yi = lnRR, vi = VarLnRR, data = dfshort, mods = ~ depths*log(timesincetrawl+1) - 1, subset = (respvar == "TOC"))
 
-## Output models
 modTOCtst
-modTOCtsti
 
 ```
 
@@ -2242,14 +2386,7 @@ modTOCtsti
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "TOC", depvar = "heffortnum", df = fishdf, xlabz = "trawling effort", log = FALSE)
-
-modTOCtfr <- rma.mv(lnRR, V = VarLnRR, data = fishdftoc, mods = ~depths*timesincetrawl, random = ~ 1|article_type_id, method = "REML")
-modTOCtfri <- rma.mv(lnRR, V = VarLnRR, data = fishdftoc, mods = ~depths*timesincetrawl-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modTOCtfr
-modTOCtfri
+modTOCtfr <- contvarplot(resp = "TOC", depvar = "heffortnum", df = fishdf, xlabz = "trawling effort", log = FALSE)
 
 ```
 
@@ -2260,14 +2397,7 @@ modTOCtfri
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "TOC", depvar = "cvel", df = subtoc, xlabz = "Current velocity", log = FALSE)
-
-modTOCcur <- rma.mv(lnRR, V = VarLnRR, data = subtoc, mods = ~depths*cvel, random = ~ 1|article_type_id, method = "REML")
-modTOCcuri <- rma.mv(lnRR, V = VarLnRR, data = subtoc, mods = ~depths*cvel-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modTOCcur
-modTOCcuri
+modTOCcur <- contvarplot(resp = "TOC", depvar = "cvel", df = dfshort, xlabz = "Current velocity", log = FALSE)
 
 ```
 
@@ -2278,14 +2408,7 @@ modTOCcuri
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "TOC", depvar = "watdepth", df = dfshort, xlabz = "Water depth", log = FALSE)
-
-modTOCwat <- rma.mv(lnRR, V = VarLnRR, data = subtoc, mods = ~depths*watdepth, random = ~ 1|article_type_id, method = "REML")
-modTOCwati <- rma.mv(lnRR, V = VarLnRR, data = subtoc, mods = ~depths*watdepth-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modTOCwat
-modTOCwati
+modTOCwat <- contvarplot(resp = "TOC", depvar = "watdepth", df = dfshort, xlabz = "Water depth", log = FALSE)
 
 ```
 
@@ -2296,14 +2419,7 @@ modTOCwati
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "TOC", depvar = "nppsurf", df = dfshort, xlabz = "Primary productivity", log = FALSE)
-
-modTOCnpp  <- rma.mv(lnRR, V = VarLnRR, data = subtoc, mods = ~depths*nppsurf  , random = ~ 1|article_type_id, method = "REML")
-modTOCnppi <- rma.mv(lnRR, V = VarLnRR, data = subtoc, mods = ~depths*nppsurf-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modTOCnpp
-modTOCnppi
+modTOCnpp  <- contvarplot(resp = "TOC", depvar = "nppsurf", df = dfshort, xlabz = "Primary productivity", log = FALSE)
 
 ```
 
@@ -2314,14 +2430,7 @@ modTOCseai: significance only due to 1 combination (subsurface:spring)
 
 ```{r, echo = FALSE, warning = FALSE}
 
-# contvarplot(resp = "TOC", depvar = "hseason", df = dfshort, xlabz = "Season", log = FALSE)
-
-modTOCsea <- rma.mv(lnRR, V = VarLnRR, data = subtoc, mods = ~depths*hseason, random = ~ 1|article_type_id, method = "REML")
-modTOCseai <- rma.mv(lnRR, V = VarLnRR, data = subtoc, mods = ~depths*hseason-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modTOCsea
-modTOCseai
+modTOCsea <- contvarplot(resp = "TOC", depvar = "hseason", df = dfshort, xlabz = "Season", log = FALSE)
 
 ```
 
@@ -2332,18 +2441,19 @@ modTOChabi: significant regressions for subsurface and full samples.
 
 ```{r, echo = FALSE, warning = FALSE}
 
-# contvarplot(resp = "TOC", depvar = "hhabtype", df = dfshort, xlabz = "
-#             habitat", log = FALSE)
-
-modTOChab <- rma.mv(lnRR, V = VarLnRR, data = subtoc, mods = ~depths*hhabtype, random = ~ 1|article_type_id, method = "REML")
-modTOChabi <- rma.mv(lnRR, V = VarLnRR, data = subtoc, mods = ~depths*hhabtype-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modTOChab
-modTOChabi
+modTOChab <- contvarplot(resp = "TOC", depvar = "hhabtype", df = dfshort, xlabz = "habitat", log = FALSE)
 
 ```
 
+#### Combine for output
+
+```{r}
+
+toc_test <- rbind(modTOCtst, modTOCtfr, modTOCcur, modTOCwat, modTOCnpp, modTOCsea, modTOChab)
+toc_test[,c(4:11)] <- round(toc_test[,c(4:11)], 3)
+write.table(toc_test, file = "../tables/toc_models.txt", sep = ",", quote = FALSE, row.names = F)
+
+```
 
 ### TN
 
@@ -2386,14 +2496,7 @@ modTNslice
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "TN", depvar = "timesincetrawl", df = timedf, xlabz = "log (timesincetrawl)", log = TRUE)
-
-modTNtst <- rma.mv(lnRR, V = VarLnRR, data = timedftn, mods = ~depths*log(timesincetrawl+1), random = ~ 1|article_type_id, method = "REML")
-modTNtsti <- rma.mv(lnRR, V = VarLnRR, data = timedftn, mods = ~depths*log(timesincetrawl+1)-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modTNtst
-modTNtsti
+modTNtst <- contvarplot(resp = "TN", depvar = "timesincetrawl", df = timedf, xlabz = "log (timesincetrawl)", log = TRUE)
 
 ```
 
@@ -2403,14 +2506,7 @@ modTNtsti
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "TN", depvar = "heffortnum", df = fishdf, xlabz = "trawling effort", log = FALSE)
-
-modTNtfr <- rma.mv(lnRR, V = VarLnRR, data = fishdftn, mods = ~depths*heffortnum, random = ~ 1|article_type_id, method = "REML")
-modTNtfri <- rma.mv(lnRR, V = VarLnRR, data = fishdftn, mods = ~depths*heffortnum-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modTNtfr
-modTNtfri
+modTNtfr <- contvarplot(resp = "TN", depvar = "heffortnum", df = fishdf, xlabz = "trawling effort", log = FALSE)
 
 ```
 
@@ -2420,14 +2516,7 @@ modTNtfri
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "TN", depvar = "cvel", df = dfshort, xlabz = "Current velocity", log = FALSE)
-
-modTNcur <- rma.mv(lnRR, V = VarLnRR, data = subtn, mods = ~depths*cvel, random = ~ 1|article_type_id, method = "REML")
-modTNcuri <- rma.mv(lnRR, V = VarLnRR, data = subtn, mods = ~depths*cvel-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modTNcur
-modTNcuri
+modTNcur <- contvarplot(resp = "TN", depvar = "cvel", df = dfshort, xlabz = "Current velocity", log = FALSE)
 
 ```
 
@@ -2437,14 +2526,7 @@ modTNcuri
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "TN", depvar = "watdepth", df = dfshort, xlabz = "Water depth", log = FALSE)
-
-modTNwat <- rma.mv(lnRR, V = VarLnRR, data = subtn, mods = ~depths*watdepth, random = ~ 1|article_type_id, method = "REML")
-modTNwati <- rma.mv(lnRR, V = VarLnRR, data = subtn, mods = ~depths*watdepth-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modTNwat
-modTNwati
+modTNwat <- contvarplot(resp = "TN", depvar = "watdepth", df = dfshort, xlabz = "Water depth", log = FALSE)
 
 ```
 
@@ -2455,14 +2537,7 @@ modTNwati
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "TN", depvar = "nppsurf", df = dfshort, xlabz = "Primary productivity", log = FALSE)
-
-modTNnpp <- rma.mv(lnRR, V = VarLnRR, data = subtn, mods = ~depths*nppsurf, random = ~ 1|article_type_id, method = "REML")
-modTNnppi <- rma.mv(lnRR, V = VarLnRR, data = subtn, mods = ~depths*nppsurf-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modTNnpp
-modTNnppi
+modTNnpp <- contvarplot(resp = "TN", depvar = "nppsurf", df = dfshort, xlabz = "Primary productivity", log = FALSE)
 
 ```
 
@@ -2472,14 +2547,7 @@ modTNnppi
 
 ```{r, echo = FALSE, warning = FALSE}
 
-# contvarplot(resp = "TOC", depvar = "hseason", df = dfshort, xlabz = "Season", log = FALSE)
-
-modTNsea <- rma.mv(lnRR, V = VarLnRR, data = subtn, mods = ~depths*hseason, random = ~ 1|article_type_id, method = "REML")
-modTNseai <- rma.mv(lnRR, V = VarLnRR, data = subtn, mods = ~depths*hseason-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modTNsea
-modTNseai
+modTNsea <- contvarplot(resp = "TOC", depvar = "hseason", df = dfshort, xlabz = "Season", log = FALSE)
 
 ```
 
@@ -2489,17 +2557,20 @@ modTNseai
 
 ```{r, echo = FALSE, warning = FALSE}
 
-# contvarplot(resp = "TN", depvar = "hhabtype", df = dfshort, xlabz = "
-#             habitat", log = FALSE)
-
-modTNhab <- rma.mv(lnRR, V = VarLnRR, data = subtn, mods = ~depths*hhabtype, random = ~ 1|article_type_id, method = "REML")
-modTNhabi <- rma.mv(lnRR, V = VarLnRR, data = subtn, mods = ~depths*hhabtype-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modTNhab
-modTNhabi
+modTNhab <-  contvarplot(resp = "TN", depvar = "hhabtype", df = dfshort, xlabz = "habitat", log = FALSE) # Only 1 
 
 ```
+
+#### Combine for output
+
+```{r}
+
+tn_test <- rbind(modTNtst, modTNtfr, modTNcur, modTNwat, modTNnpp, modTNsea) #, modTNhab)
+tn_test[,c(4:11)] <- round(tn_test[,c(4:11)], 3)
+write.table(tn_test, file = "../tables/tn_models.txt", sep = ",", quote = FALSE, row.names = F)
+
+```
+
 
 ### TOC/TN
 
@@ -2540,14 +2611,7 @@ modTOCTNslice
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "TOC/TN", depvar = "timesincetrawl", df = timedf, xlabz = "log (timesincetrawl)", log = TRUE)
-
-modTOCTNtst <- rma.mv(lnRR, V = VarLnRR, data = timedftoctn, mods = ~depths*log(timesincetrawl+1), random = ~ 1|article_type_id, method = "REML")
-modTOCTNtsti <- rma.mv(lnRR, V = VarLnRR, data = timedftoctn, mods = ~depths*log(timesincetrawl+1)-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modTOCTNtst
-modTOCTNtsti
+modTOCTNtst <- contvarplot(resp = "TOC/TN", depvar = "timesincetrawl", df = timedf, xlabz = "log (timesincetrawl)", log = TRUE)
 
 ```
 
@@ -2557,14 +2621,7 @@ modTOCTNtsti
 
 ```{r, echo = FALSE, warning = FALSE}
 
-# contvarplot(resp = "TOC/TN", depvar = "heffortnum", df = fishdf, xlabz = "trawling effort", log = FALSE)
-
-modTOCTNtfr <- rma.mv(lnRR, V = VarLnRR, data = fishdftoctn, mods = ~depths*log(timesincetrawl+1), random = ~ 1|article_type_id, method = "REML")
-modTOCTNtfri <- rma.mv(lnRR, V = VarLnRR, data = fishdftoctn, mods = ~depths*log(timesincetrawl+1)-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modTOCTNtfr
-modTOCTNtfri
+modTOCTNtfr <- contvarplot(resp = "TOC/TN", depvar = "heffortnum", df = fishdf, xlabz = "trawling effort", log = FALSE)
 
 ```
 
@@ -2574,14 +2631,7 @@ modTOCTNtfri
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "TOC/TN", depvar = "cvel", df = dfshort, xlabz = "Current velocity", log = FALSE)
-
-modTOCTNcur <- rma.mv(lnRR, V = VarLnRR, data = subtoctn, mods = ~depths*cvel, random = ~ 1|article_type_id, method = "REML")
-modTOCTNcuri <- rma.mv(lnRR, V = VarLnRR, data = subtoctn, mods = ~depths*cvel-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modTOCTNcur
-modTOCTNcuri
+modTOCTNcur <- contvarplot(resp = "TOC/TN", depvar = "cvel", df = dfshort, xlabz = "Current velocity", log = FALSE)
 
 ```
 
@@ -2591,14 +2641,7 @@ modTOCTNcuri
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "TOC/TN", depvar = "watdepth", df = dfshort, xlabz = "Water depth", log = FALSE)
-
-modTOCTNwat <- rma.mv(lnRR, V = VarLnRR, data = subtoctn, mods = ~depths*watdepth, random = ~ 1|article_type_id, method = "REML")
-modTOCTNwati <- rma.mv(lnRR, V = VarLnRR, data = subtoctn, mods = ~depths*watdepth-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modTOCTNwat
-modTOCTNwati
+modTOCTNwat <- contvarplot(resp = "TOC/TN", depvar = "watdepth", df = dfshort, xlabz = "Water depth", log = FALSE)
 
 ```
 
@@ -2608,14 +2651,7 @@ modTOCTNwati
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "TOC/TN", depvar = "nppsurf", df = dfshort, xlabz = "Primary productivity", log = FALSE)
-
-modTOCTNnpp <- rma.mv(lnRR, V = VarLnRR, data = subtoctn, mods = ~depths*nppsurf, random = ~ 1|article_type_id, method = "REML")
-modTOCTNnppi <- rma.mv(lnRR, V = VarLnRR, data = subtoctn, mods = ~depths*nppsurf-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modTOCTNnpp
-modTOCTNnppi
+modTOCTNnpp <- contvarplot(resp = "TOC/TN", depvar = "nppsurf", df = dfshort, xlabz = "Primary productivity", log = FALSE)
 
 ```
 
@@ -2625,14 +2661,8 @@ modTOCTNnppi
 
 ```{r, echo = FALSE, warning = FALSE}
 
-# contvarplot(resp = "TOC/TN", depvar = "hseason", df = dfshort, xlabz = "Season", log = FALSE)
+modTOCTNsea <-  contvarplot(resp = "TOC/TN", depvar = "hseason", df = dfshort, xlabz = "Season", log = FALSE)
 
-modTOCTNsea <- rma.mv(lnRR, V = VarLnRR, data = subtoctn, mods = ~depths*hseason, random = ~ 1|article_type_id, method = "REML")
-modTOCTNseai <- rma.mv(lnRR, V = VarLnRR, data = subtoctn, mods = ~depths*hseason-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modTOCTNsea
-modTOCTNseai
 
 ```
 
@@ -2642,17 +2672,20 @@ modTOCTNseai
 
 ```{r, echo = FALSE, warning = FALSE}
 
-# contvarplot(resp = "TOCTN", depvar = "hhabtype", df = dfshort, xlabz = "
-            # habitat", log = FALSE)
-
-modTOCTNhab <- rma.mv(lnRR, V = VarLnRR, data = subtoctn, mods = ~depths*hhabtype, random = ~ 1|article_type_id, method = "REML")
-modTOCTNhabi <- rma.mv(lnRR, V = VarLnRR, data = subtoctn, mods = ~depths*hhabtype-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modTOCTNhab
-modTOCTNhabi
+modTOCTNhab <- contvarplot(resp = "TOCTN", depvar = "hhabtype", df = dfshort, xlabz = "habitat", log = FALSE)
 
 ```
+
+#### Combine for output
+
+```{r}
+
+toctn_test <- rbind(modTOCTNtst, modTOCTNtfr, modTOCTNcur, modTOCTNwat, modTOCTNnpp, modTOCTNsea) #, modTOCTNhab)
+toctn_test[,c(4:11)] <- round(toctn_test[,c(4:11)], 3)
+write.table(toctn_test, file = "../tables/toctn_models.txt", sep = ",", quote = FALSE, row.names = F)
+
+```
+
 
 ### Chl-a
 
@@ -2691,14 +2724,7 @@ modChlaslice
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "Chl-a", depvar = "timesincetrawl", df = timedf, xlabz = "log (timesincetrawl)", log = TRUE)
-
-modchlatst <- rma.mv(lnRR, V = VarLnRR, data = timedfchla, mods = ~depths*log(timesincetrawl+1), random = ~ 1|article_type_id, method = "REML")
-modchlatsti <- rma.mv(lnRR, V = VarLnRR, data = timedfchla, mods = ~depths*log(timesincetrawl+1)-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modchlatst
-modchlatsti
+modchlatst <- contvarplot(resp = "Chl-a", depvar = "timesincetrawl", df = timedf, xlabz = "log (timesincetrawl)", log = TRUE)
 
 ```
 
@@ -2708,14 +2734,7 @@ modchlatsti
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "Chl-a", depvar = "heffortnum", df = fishdf, xlabz = "trawling effort", log = FALSE)
-
-modchlafreq <- rma.mv(lnRR, V = VarLnRR, data = fishdfchla, mods = ~depths*heffortnum, random = ~ 1|article_type_id, method = "REML")
-modchlafreqi <- rma.mv(lnRR, V = VarLnRR, data = fishdfchla, mods = ~depths*heffortnum-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modchlafreq
-modchlafreqi
+modchlafreq <- contvarplot(resp = "Chl-a", depvar = "heffortnum", df = fishdf, xlabz = "trawling effort", log = FALSE)
 
 ```
 
@@ -2725,14 +2744,7 @@ modchlafreqi
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "Chl-a", depvar = "cvel", df = dfshort, xlabz = "Current velocity", log = FALSE)
-
-modchlacur <- rma.mv(lnRR, V = VarLnRR, data = subchla, mods = ~depths*cvel, random = ~ 1|article_type_id, method = "REML")
-modchlacuri <- rma.mv(lnRR, V = VarLnRR, data = subchla, mods = ~depths*cvel-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modchlacur
-modchlacuri
+modchlacur <- contvarplot(resp = "Chl-a", depvar = "cvel", df = dfshort, xlabz = "Current velocity", log = FALSE)
 
 ```
 
@@ -2742,14 +2754,7 @@ modchlacuri
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "Chl-a", depvar = "watdepth", df = dfshort, xlabz = "Water depth", log = FALSE)
-
-modchlawat <- rma.mv(lnRR, V = VarLnRR, data = subchla, mods = ~depths*watdepth, random = ~ 1|article_type_id, method = "REML")
-modchlawati <- rma.mv(lnRR, V = VarLnRR, data = subchla, mods = ~depths*watdepth-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modchlawat
-modchlawati
+modchlawat <- contvarplot(resp = "Chl-a", depvar = "watdepth", df = dfshort, xlabz = "Water depth", log = FALSE)
 
 ```
 
@@ -2759,14 +2764,7 @@ modchlawati
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "Chl-a", depvar = "nppsurf", df = dfshort, xlabz = "Primary productivity", log = FALSE)
-
-modchlanpp <- rma.mv(lnRR, V = VarLnRR, data = subchla, mods = ~depths*nppsurf, random = ~ 1|article_type_id, method = "REML")
-modchlanppi <- rma.mv(lnRR, V = VarLnRR, data = subchla, mods = ~depths*nppsurf-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modchlanpp
-modchlanppi
+modchlanpp <- contvarplot(resp = "Chl-a", depvar = "nppsurf", df = dfshort, xlabz = "Primary productivity", log = FALSE)
 
 ```
 
@@ -2776,14 +2774,7 @@ modchlanppi
 
 ```{r, echo = FALSE, warning = FALSE}
 
-# contvarplot(resp = "Chl-a", depvar = "hseason", df = dfshort, xlabz = "Season", log = FALSE)
-
-modchlasea <- rma.mv(lnRR, V = VarLnRR, data = subchla, mods = ~depths*hseason, random = ~ 1|article_type_id, method = "REML")
-modchlaseai <- rma.mv(lnRR, V = VarLnRR, data = subchla, mods = ~depths*hseason-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modchlasea
-modchlaseai
+modchlasea <- contvarplot(resp = "Chl-a", depvar = "hseason", df = dfshort, xlabz = "Season", log = FALSE)
 
 ```
 
@@ -2793,17 +2784,20 @@ modchlaseai
 
 ```{r, echo = FALSE, warning = FALSE}
 
-# contvarplot(resp = "Chl-a", depvar = "hhabtype", df = dfshort, xlabz = "
-#             habitat", log = FALSE)
-
-modchlahab <- rma.mv(lnRR, V = VarLnRR, data = subchla, mods = ~depths*hhabtype, random = ~ 1|article_type_id, method = "REML")
-modchlahabi <- rma.mv(lnRR, V = VarLnRR, data = subchla, mods = ~depths*hhabtype-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modchlahab
-modchlahabi
+modchlahab <- contvarplot(resp = "Chl-a", depvar = "hhabtype", df = dfshort, xlabz = "habitat", log = FALSE)
 
 ```
+
+#### Combine for output
+
+```{r}
+
+chla_test <- rbind(modchlatst, modchlafreq, modchlacur, modchlawat, modchlanpp, modchlasea, modchlahab)
+chla_test[,c(4:11)] <- round(chla_test[,c(4:11)], 3)
+write.table(chla_test, file = "../tables/chla_models.txt", sep = ",", quote = FALSE, row.names = F)
+
+```
+
 
 ### Phaeopigments
 
@@ -2843,14 +2837,7 @@ modPhaeoslice
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "Phaeopigments", depvar = "timesincetrawl", df = timedf, xlabz = "log (timesincetrawl)", log = TRUE)
-
-modphaeotst <- rma.mv(lnRR, V = VarLnRR, data = timedfphaeo, mods = ~depths*log(timesincetrawl+1), random = ~ 1|article_type_id, method = "REML")
-modphaeotsti <- rma.mv(lnRR, V = VarLnRR, data = timedfphaeo, mods = ~depths*log(timesincetrawl+1)-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modphaeotst
-modphaeotsti
+modphaeotst <- contvarplot(resp = "Phaeopigments", depvar = "timesincetrawl", df = timedf, xlabz = "log (timesincetrawl)", log = TRUE)
 
 ```
 
@@ -2860,14 +2847,7 @@ modphaeotsti
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "Phaeopigments", depvar = "heffortnum", df = fishdf, xlabz = "trawling effort", log = FALSE)
-
-modphaeofreq <- rma.mv(lnRR, V = VarLnRR, data = fishdfphaeo, mods = ~depths*heffortnum, random = ~ 1|article_type_id, method = "REML")
-modphaeofreqi <- rma.mv(lnRR, V = VarLnRR, data = fishdfphaeo, mods = ~depths*heffortnum-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modphaeofreq
-modphaeofreqi
+modphaeofreq <- contvarplot(resp = "Phaeopigments", depvar = "heffortnum", df = fishdf, xlabz = "trawling effort", log = FALSE)
 
 ```
 
@@ -2877,14 +2857,7 @@ modphaeofreqi
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "Phaeopigments", depvar = "cvel", df = dfshort, xlabz = "Current velocity", log = FALSE)
-
-modphaeocur <- rma.mv(lnRR, V = VarLnRR, data = subphaeo, mods = ~depths*cvel, random = ~ 1|article_type_id, method = "REML")
-modphaeocuri <- rma.mv(lnRR, V = VarLnRR, data = subphaeo, mods = ~depths*cvel-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modphaeocur
-modphaeocuri
+modphaeocur <- contvarplot(resp = "Phaeopigments", depvar = "cvel", df = dfshort, xlabz = "Current velocity", log = FALSE)
 
 ```
 
@@ -2894,14 +2867,7 @@ modphaeocuri
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "Phaeopigments", depvar = "watdepth", df = dfshort, xlabz = "Water depth", log = FALSE)
-
-modphaeowat <- rma.mv(lnRR, V = VarLnRR, data = subphaeo, mods = ~depths*watdepth, random = ~ 1|article_type_id, method = "REML")
-modphaeowati <- rma.mv(lnRR, V = VarLnRR, data = subphaeo, mods = ~depths*watdepth-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modphaeowat
-modphaeowati
+modphaeowat <- contvarplot(resp = "Phaeopigments", depvar = "watdepth", df = dfshort, xlabz = "Water depth", log = FALSE)
 
 ```
 
@@ -2912,14 +2878,7 @@ modphaeowati
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "Phaeopigments", depvar = "nppsurf", df = dfshort, xlabz = "Primary productivity", log = FALSE)
-
-modphaeonpp <- rma.mv(lnRR, V = VarLnRR, data = subphaeo, mods = ~depths*nppsurf, random = ~ 1|article_type_id, method = "REML")
-modphaeonppi <- rma.mv(lnRR, V = VarLnRR, data = subphaeo, mods = ~depths*nppsurf-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modphaeonpp
-modphaeonppi
+modphaeonpp <- contvarplot(resp = "Phaeopigments", depvar = "nppsurf", df = dfshort, xlabz = "Primary productivity", log = FALSE)
 
 ```
 
@@ -2929,14 +2888,8 @@ modphaeonppi
 
 ```{r, echo = FALSE, warning = FALSE}
 
-# contvarplot(resp = "Phaeopigments", depvar = "hseason", df = dfshort, xlabz = "Season", log = FALSE)
+modphaeosea <- contvarplot(resp = "Phaeopigments", depvar = "hseason", df = dfshort, xlabz = "Season", log = FALSE)
 
-modphaeosea <- rma.mv(lnRR, V = VarLnRR, data = subphaeo, mods = ~depths*hseason, random = ~ 1|article_type_id, method = "REML")
-modphaeoseai <- rma.mv(lnRR, V = VarLnRR, data = subphaeo, mods = ~depths*hseason-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modphaeosea
-modphaeoseai
 
 ```
 
@@ -2944,17 +2897,20 @@ modphaeoseai
 
 ```{r, echo = FALSE, warning = FALSE}
 
-# contvarplot(resp = "Phaeopigments", depvar = "hhabtype", df = dfshort, xlabz = "
-#             habitat", log = FALSE)
-
-modphaeohab <- rma.mv(lnRR, V = VarLnRR, data = subphaeo, mods = ~depths*factor(hhabtype), random = ~ 1|article_type_id, method = "REML")
-modphaeohabi <- rma.mv(lnRR, V = VarLnRR, data = subphaeo, mods = ~depths*hhabtype-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modphaeohab
-modphaeohabi
+modphaeohab <- contvarplot(resp = "Phaeopigments", depvar = "hhabtype", df = dfshort, xlabz = " habitat", log = FALSE)
 
 ```
+
+#### Combine for output
+
+```{r}
+
+phaeo_test <- rbind(modphaeotst, modphaeofreq, modphaeocur, modphaeowat, modphaeonpp, modphaeosea, modphaeohab)
+phaeo_test[,c(4:11)] <- round(phaeo_test[,c(4:11)], 3)
+write.table(phaeo_test, file = "../tables/phaeo_models.txt", sep = ",", quote = FALSE, row.names = F)
+
+```
+
 
 ### Phytopigments
 
@@ -2984,7 +2940,6 @@ plotdepthslices(var = "Phytopigments", model = modPhytoslice, avgdf = out, maint
 ## Output models
 modPhyto
 modPhytoslice
-
 ```
 
 
@@ -2994,14 +2949,7 @@ modPhytoslice
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "Phytopigments", depvar = "timesincetrawl", df = timedf, xlabz = "log (timesincetrawl)", log = TRUE)
-
-modphytotst <- rma.mv(lnRR, V = VarLnRR, data = timedfphyto, mods = ~depths*log(timesincetrawl+1), random = ~ 1|article_type_id, method = "REML")
-modphytotsti <- rma.mv(lnRR, V = VarLnRR, data = timedfphyto, mods = ~depths*log(timesincetrawl+1)-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modphytotst
-modphytotsti
+modphytotst <- contvarplot(resp = "Phytopigments", depvar = "timesincetrawl", df = timedf, xlabz = "log (timesincetrawl)", log = TRUE)
 
 ```
 
@@ -3011,14 +2959,7 @@ modphytotsti
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "Phytopigments", depvar = "heffortnum", df = fishdf, xlabz = "trawling effort", log = FALSE)
-
-modphytofreq <- rma.mv(lnRR, V = VarLnRR, data = fishdfphyto, mods = ~depths*heffortnum, random = ~ 1|article_type_id, method = "REML")
-modphytofreqi <- rma.mv(lnRR, V = VarLnRR, data = fishdfphyto, mods = ~depths*heffortnum-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modphytofreq
-modphytofreqi
+modphytofreq <- contvarplot(resp = "Phytopigments", depvar = "heffortnum", df = fishdf, xlabz = "trawling effort", log = FALSE)
 
 ```
 
@@ -3028,14 +2969,7 @@ modphytofreqi
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "Phytopigments", depvar = "cvel", df = dfshort, xlabz = "Current velocity", log = FALSE)
-
-modphytocur <- rma.mv(lnRR, V = VarLnRR, data = subphyto, mods = ~depths*cvel, random = ~ 1|article_type_id, method = "REML")
-modphytocuri <- rma.mv(lnRR, V = VarLnRR, data = subphyto, mods = ~depths*cvel-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modphytocur
-modphytocuri
+modphytocur <- contvarplot(resp = "Phytopigments", depvar = "cvel", df = dfshort, xlabz = "Current velocity", log = FALSE)
 
 ```
 
@@ -3045,14 +2979,7 @@ modphytocuri
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "Phytopigments", depvar = "watdepth", df = dfshort, xlabz = "Water depth", log = FALSE)
-
-modphytowat <- rma.mv(lnRR, V = VarLnRR, data = subphyto, mods = ~depths*watdepth, random = ~ 1|article_type_id, method = "REML")
-modphytowati <- rma.mv(lnRR, V = VarLnRR, data = subphyto, mods = ~depths*watdepth-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modphytowat
-modphytowati
+modphytowat <-contvarplot(resp = "Phytopigments", depvar = "watdepth", df = dfshort, xlabz = "Water depth", log = FALSE)
 
 ```
 
@@ -3062,14 +2989,7 @@ modphytowati
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "Phytopigments", depvar = "nppsurf", df = dfshort, xlabz = "Primary productivity", log = FALSE)
-
-modphytonpp <- rma.mv(lnRR, V = VarLnRR, data = subphyto, mods = ~depths*nppsurf, random = ~ 1|article_type_id, method = "REML")
-modphytonppi <- rma.mv(lnRR, V = VarLnRR, data = subphyto, mods = ~depths*nppsurf-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modphytonpp
-modphytonppi
+modphytonpp <- contvarplot(resp = "Phytopigments", depvar = "nppsurf", df = dfshort, xlabz = "Primary productivity", log = FALSE)
 
 ```
 
@@ -3079,14 +2999,7 @@ modphytonppi
 
 ```{r, echo = FALSE, warning = FALSE}
 
-# contvarplot(resp = "Phytopigments", depvar = "hseason", df = dfshort, xlabz = "Season", log = FALSE)
-
-modphytosea <- rma.mv(lnRR, V = VarLnRR, data = subphyto, mods = ~depths*hseason, random = ~ 1|article_type_id, method = "REML")
-modphytoseai <- rma.mv(lnRR, V = VarLnRR, data = subphyto, mods = ~depths*hseason-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modphytosea
-modphytoseai
+modphytosea <- contvarplot(resp = "Phytopigments", depvar = "hseason", df = dfshort, xlabz = "Season", log = FALSE)
 
 ```
 
@@ -3094,17 +3007,20 @@ modphytoseai
 
 ```{r, echo = FALSE, warning = FALSE}
 
-# contvarplot(resp = "Phytopigments", depvar = "hhabtype", df = dfshort, xlabz = "
-#             habitat", log = FALSE)
-
-modphytohab <- rma.mv(lnRR, V = VarLnRR, data = subphyto, mods = ~depths*hhabtype, random = ~ 1|article_type_id, method = "REML")
-modphytohabi <- rma.mv(lnRR, V = VarLnRR, data = subphyto, mods = ~depths*hhabtype-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modphytohab
-modphytohabi
+modphytohab <-  contvarplot(resp = "Phytopigments", depvar = "hhabtype", df = dfshort, xlabz = "habitat", log = FALSE)
 
 ```
+
+#### Combine for output
+
+```{r}
+
+phyto_test <- rbind(modphytotst, modphytofreq, modphytocur, modphytowat, modphytonpp, modphytosea, modphytohab)
+phyto_test[,c(4:11)] <- round(phyto_test[,c(4:11)], 3)
+write.table(phyto_test, file = "../tables/phyto_models.txt", sep = ",", quote = FALSE, row.names = F)
+
+```
+
 
 ### Mean grain size
 
@@ -3145,14 +3061,7 @@ modMgsslice
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "Mean grain size", depvar = "timesincetrawl", df = timedf, xlabz = "log (timesincetrawl)", log = TRUE)
-
-modmgstst <- rma.mv(lnRR, V = VarLnRR, data = timedfmgs, mods = ~depths*log(timesincetrawl+1), random = ~ 1|article_type_id, method = "REML")
-modmgststi <- rma.mv(lnRR, V = VarLnRR, data = timedfmgs, mods = ~depths*log(timesincetrawl+1)-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modmgstst
-modmgststi
+modmgstst <- contvarplot(resp = "Mean grain size", depvar = "timesincetrawl", df = timedf, xlabz = "log (timesincetrawl)", log = TRUE)
 
 ```
 
@@ -3162,14 +3071,7 @@ modmgststi
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "Mean grain size", depvar = "heffortnum", df = fishdf, xlabz = "trawling effort", log = FALSE)
-
-modmgsfish <- rma.mv(lnRR, V = VarLnRR, data = fishdfmgs, mods = ~depths*heffortnum, random = ~ 1|article_type_id, method = "REML")
-modmgsfishi <- rma.mv(lnRR, V = VarLnRR, data = fishdfmgs, mods = ~depths*heffortnum-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modmgsfish
-modmgsfishi
+modmgsfish <- contvarplot(resp = "Mean grain size", depvar = "heffortnum", df = fishdf, xlabz = "trawling effort", log = FALSE)
 
 ```
 
@@ -3179,14 +3081,7 @@ modmgsfishi
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "Mean grain size", depvar = "cvel", df = dfshort[-312,], xlabz = "Current velocity", log = FALSE)
-
-modmgscur <- rma.mv(lnRR, V = VarLnRR, data = submgs, mods = ~depths*cvel, random = ~ 1|article_type_id, method = "REML")
-modmgscuri <- rma.mv(lnRR, V = VarLnRR, data = submgs, mods = ~depths*cvel-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modmgscur
-modmgscuri
+modmgscur <- contvarplot(resp = "Mean grain size", depvar = "cvel", df = dfshort[-312,], xlabz = "Current velocity", log = FALSE)
 
 ```
 
@@ -3196,14 +3091,7 @@ modmgscuri
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "Mean grain size", depvar = "watdepth", df = dfshort[-312,], xlabz = "Water depth", log = FALSE)
-
-modmgswat <- rma.mv(lnRR, V = VarLnRR, data = submgs, mods = ~depths*watdepth, random = ~ 1|article_type_id, method = "REML")
-modmgswati <- rma.mv(lnRR, V = VarLnRR, data = submgs, mods = ~depths*watdepth-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modmgswat
-modmgswati
+modmgswat <- contvarplot(resp = "Mean grain size", depvar = "watdepth", df = dfshort[-312,], xlabz = "Water depth", log = FALSE)
 
 ```
 
@@ -3213,14 +3101,7 @@ modmgswati
 
 ```{r, echo = FALSE, warning = FALSE}
 
-contvarplot(resp = "Mean grain size", depvar = "nppsurf", df = dfshort[-312,], xlabz = "Primary productivity", log = FALSE)
-
-modmgsnpp <- rma.mv(lnRR, V = VarLnRR, data = submgs, mods = ~depths*nppsurf, random = ~ 1|article_type_id, method = "REML")
-modmgsnppi <- rma.mv(lnRR, V = VarLnRR, data = submgs, mods = ~depths*nppsurf-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modmgsnpp
-modmgsnppi
+modmgsnpp <-contvarplot(resp = "Mean grain size", depvar = "nppsurf", df = dfshort[-312,], xlabz = "Primary productivity", log = FALSE)
 
 ```
 
@@ -3230,14 +3111,7 @@ modmgsnppi
 
 ```{r, echo = FALSE, warning = FALSE}
 
-# contvarplot(resp = "Mean grain size", depvar = "hseason", df = dfshort, xlabz = "Season", log = FALSE)
-
-modmgssea <- rma.mv(lnRR, V = VarLnRR, data = submgs, mods = ~depths*hseason, random = ~ 1|article_type_id, method = "REML")
-modmgsseai <- rma.mv(lnRR, V = VarLnRR, data = submgs, mods = ~depths*hseason-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modmgssea
-modmgsseai
+modmgssea <-contvarplot(resp = "Mean grain size", depvar = "hseason", df = dfshort[-312,], xlabz = "Season", log = FALSE)
 
 ```
 
@@ -3247,17 +3121,387 @@ modmgsseai
 
 ```{r, echo = FALSE, warning = FALSE}
 
-# contvarplot(resp = "Mean grain size", depvar = "hhabtype", df = dfshort, xlabz = "
-#             habitat", log = FALSE)
-
-modmgshab <- rma.mv(lnRR, V = VarLnRR, data = submgs, mods = ~depths*hhabtype, random = ~ 1|article_type_id, method = "REML")
-modmgshabi <- rma.mv(lnRR, V = VarLnRR, data = submgs, mods = ~depths*hhabtype-1, random = ~ 1|article_type_id, method = "REML")
-
-## Output models
-modmgshab
-modmgshabi
+modmgshab <- contvarplot(resp = "Mean grain size", depvar = "hhabtype", df = dfshort[-312,], xlabz = "habitat", log = FALSE)
 
 ```
+
+
+#### Combine for output
+
+```{r}
+
+mgs_test <- rbind(modmgstst, modmgsfish, modmgscur, modmgswat, modmgsnpp, modmgssea) #, modmgshab)
+mgs_test[,c(4:11)] <- round(NHx_test[,c(4:11)], 3)
+write.table(mgs_test, file = "../tables/mgs_models.txt", sep = ",", quote = FALSE, row.names = F)
+
+```
+
+### Silt
+
+
+```{r, echo = FALSE, warning = FALSE}
+
+# Subset of our variable
+sub <- subset(dfshort, respvar == "Silt")
+t <- table(sub$article_type_id, sub$depths)
+  
+# filters out when too few individual studies. ==> Used for regression depth slices + variable.
+lengths <- apply(t, 2, ct)
+lengths <- lengths[lengths >= 3] 
+subsilt <- subset(sub, depths %in% names(lengths))
+timedfsilt <- subset(subsilt, !is.na(subsilt$timesincetrawl))  # select known trawl times
+fishdfsilt <- subset(subsilt, !is.na(subsilt$heffortnum))        # first take out unknown for recovery models
+
+## Test significance of slice depth as a factor.
+modSilt <- rma.uni(yi, vi, data = out, mods = ~ depths, subset = (respvar == "Silt"), method = "REML")
+
+## Test differences between slice depths.
+modSiltslice <- rma.uni(yi, vi, data = out, mods = ~ depths - 1, subset = (respvar == "Silt"), method = "REML")
+
+plotdepthslices(var = "Silt", model = modSiltslice, avgdf = out, maintitle = "Silt", miny = -1, maxy = 1.2, textpos = 0.9)
+
+## Output models
+modSilt
+modSiltslice
+
+```
+
+
+#### Time since trawling
+
+-> No sig. relationship with time since trawling
+
+```{r, echo = FALSE, warning = FALSE}
+
+modsilttst <- contvarplot(resp = "Silt", depvar = "timesincetrawl", df = timedf, xlabz = "log (timesincetrawl)", log = TRUE)
+
+```
+
+#### Trawling frequency
+
+-> No sig. relationship with trawling frequency.
+
+```{r, echo = FALSE, warning = FALSE}
+
+modsiltfish <- contvarplot(resp = "Silt", depvar = "heffortnum", df = fishdf, xlabz = "trawling effort", log = FALSE)
+
+```
+
+#### Current velocity
+
+-> No significant relation with current velocity.
+
+```{r, echo = FALSE, warning = FALSE}
+
+modsiltcur <- contvarplot(resp = "Silt", depvar = "cvel", df = dfshort, xlabz = "Current velocity", log = FALSE)
+
+```
+
+#### Water depth
+
+-> No significant relation with water depth
+
+```{r, echo = FALSE, warning = FALSE}
+
+modsiltwat <- contvarplot(resp = "Silt", depvar = "watdepth", df = dfshort, xlabz = "Water depth", log = FALSE)
+
+```
+
+#### Primary productivity
+
+-> No significant relation with primary productivity.
+
+```{r, echo = FALSE, warning = FALSE}
+
+modsiltnpp <-contvarplot(resp = "Silt", depvar = "nppsurf", df = dfshort, xlabz = "Primary productivity", log = FALSE)
+
+```
+
+#### Season
+
+-> No significant relation with season.
+
+```{r, echo = FALSE, warning = FALSE}
+
+modsiltsea <-contvarplot(resp = "Silt", depvar = "hseason", df = dfshort, xlabz = "Season", log = FALSE)
+
+```
+
+#### Habitat
+
+-> No significant relation with habitat type.
+
+```{r, echo = FALSE, warning = FALSE}
+
+modsilthab <- contvarplot(resp = "Silt", depvar = "hhabtype", df = dfshort, xlabz = "habitat", log = FALSE)
+
+```
+
+
+#### Combine for output
+
+```{r}
+
+silt_test <- rbind(modsiltcur, modsiltwat, modsiltnpp, modsiltsea, modsilthab) #, modmgshab)
+silt_test[,c(4:11)] <- round(silt_test[,c(4:11)], 3)
+write.table(silt_test, file = "../tables/silt_models.txt", sep = ",", quote = FALSE, row.names = F)
+
+```
+
+### NHx
+
+-> No significant predictor, but lnRR for surface and subsurface strata significantly below 0.
+
+```{r, echo = FALSE, warning = FALSE}
+
+# Subset of our variable
+sub <- subset(dfshort, respvar == "NHx")
+t <- table(sub$article_type_id, sub$depths)
+  
+# filters out when too few individual studies. ==> Used for regression depth slices + variable.
+lengths <- apply(t, 2, ct)
+lengths <- lengths[lengths >= 3] 
+subnhx <- subset(sub, depths %in% names(lengths))
+timedfnhx <- subset(subnhx, !is.na(subnhx$timesincetrawl))  # select known trawl times
+fishdfnhs <- subset(subnhx, !is.na(subnhx$heffortnum))        # first take out unknown for recovery models
+# subnhx <- subnhx[-1,]
+
+## Test significance of slice depth as a factor.
+modNHx <- rma.uni(yi, vi, data = out, mods = ~ depths, subset = (respvar == "NHx"), method = "REML")
+
+## Test differences between slice depths.
+modNHxslice <- rma.uni(yi, vi, data = out, mods = ~ depths - 1, subset = (respvar == "NHx"), method = "REML")
+
+plotdepthslices(var = "Mean grain size", model = modNHxslice, avgdf = out, maintitle = "NHx", miny = -1.1, maxy = 2, textpos = 1.5)
+
+## Output models
+modNHx
+modNHxslice
+
+```
+
+
+#### Time since trawling
+
+-> No sig. relationship with time since trawling
+
+```{r, echo = FALSE, warning = FALSE}
+
+modNHxtst <- contvarplot(resp = "NHx", depvar = "timesincetrawl", df = timedf, xlabz = "log (timesincetrawl)", log = TRUE)
+
+```
+
+#### Trawling frequency
+
+-> No sig. relationship with trawling frequency.
+
+```{r, echo = FALSE, warning = FALSE}
+
+modNHxfish <- contvarplot(resp = "NHx", depvar = "heffortnum", df = fishdf, xlabz = "trawling effort", log = FALSE)
+
+```
+
+#### Current velocity
+
+-> No significant relation with current velocity.
+
+```{r, echo = FALSE, warning = FALSE}
+
+modNHxcur <- contvarplot(resp = "NHx", depvar = "cvel", df = dfshort[-312,], xlabz = "Current velocity", log = FALSE)
+
+```
+
+#### Water depth
+
+-> No significant relation with water depth
+
+```{r, echo = FALSE, warning = FALSE}
+
+modNHxwat <- contvarplot(resp = "NHx", depvar = "watdepth", df = dfshort[-312,], xlabz = "Water depth", log = FALSE)
+
+```
+
+#### Primary productivity
+
+-> No significant relation with primary productivity.
+
+```{r, echo = FALSE, warning = FALSE}
+
+modNHxnpp <-contvarplot(resp = "NHx", depvar = "nppsurf", df = dfshort[-312,], xlabz = "Primary productivity", log = FALSE)
+
+```
+
+#### Season
+
+-> No significant relation with season.
+
+```{r, echo = FALSE, warning = FALSE}
+
+modNHxsea <-contvarplot(resp = "NHx", depvar = "hseason", df = dfshort, xlabz = "Season", log = FALSE)
+
+```
+
+#### Habitat
+
+-> No significant relation with habitat type.
+
+```{r, echo = FALSE, warning = FALSE}
+
+modNHxhab <- contvarplot(resp = "NHx", depvar = "hhabtype", df = dfshort, xlabz = "habitat", log = FALSE)
+
+```
+
+
+#### Combine for output
+
+```{r}
+
+NHx_test <- rbind( modNHxcur, modNHxwat, modNHxnpp, modNHxsea, modNHxhab) #, modmgshab)
+NHx_test[,c(4:11)] <- round(NHx_test[,c(4:11)], 3)
+write.table(NHx_test, file = "../tables/NHx_models.txt", sep = ",", quote = FALSE, row.names = F)
+
+```
+
+
+## Dataframes with all the info
+
+```{r}
+
+slice_model_df <- NULL
+slice_model_df <- rbind(modsum(name = "modTOC"  , var = "TOC"  , model = modTOC)  ,
+                        modsum(name = "modTN"   , var = "TN"   , model = modTN)   ,
+                        modsum(name = "modTOCTN", var = "TOCTN", model = modTOCTN),
+                        modsum(name = "modChla" , var = "Chl-a", model = modChla) ,
+                        modsum(name = "modPhaeo", var = "Phaeo", model = modPhaeo),
+                        modsum(name = "modPhyto", var = "Phyto", model = modPhyto),
+                        modsum(name = "modMgs"  , var = "MGS"  , model = modMgs))
+write.table(slice_model_df, file = "../tables/slice_models.txt", sep = ",", quote = FALSE, row.names = F)
+
+slicemods <- rbind(modTab(modTOCslice, var = "TOC"),
+                   modTab(modTNslice, var = "TN"),
+                   modTab(modTOCTNslice, var = "TOCTN"),
+                   modTab(modChlaslice, var = "Chl-a"),
+                   modTab(modPhaeoslice, var = "Phaeo"),
+                   modTab(modPhytoslice, var = "Phyto"),
+                   modTab(modMgsslice, var = "MGS"))
+write.table(slicemods, file = "../tables/slices.txt", sep = ",", quote = FALSE, row.names = F)
+
+megtab <- NULL
+for(i in varstab2){
+  print(i)
+  mod <- rma.uni(yi, vi, data = out, mods = ~ depths - 1, subset = (respvar == i), method = "REML", control=list(rel.tol=1e-8))
+  modtab <- modTab(mod, var = i)
+  
+  megtab <- rbind(megtab, modtab)
+  
+}
+
+write.table(megtab, file = "../tables/slicesext.txt", sep = ",", quote = FALSE, row.names = F)
+
+
+modTOCslice <- rma.uni(yi, vi, data = out, mods = ~ depths - 1, subset = (respvar == "TOC"), method = "REML")
+modTNslice <- rma.uni(yi, vi, data = out, mods = ~ depths - 1, subset = (respvar == "TN"), method = "REML")
+modTOCTNslice <- rma.uni(yi, vi, data = outtoctn, mods = ~ depths - 1, subset = (respvar == "TOC/TN"), method = "REML")
+modChlaslice <- rma.uni(yi, vi, data = out, mods = ~ depths - 1, subset = (respvar == "Chl-a"))
+modPhaeoslice <- rma.uni(yi, vi, data = out, mods = ~ depths - 1, subset = (respvar == "Phaeopigments"), method = "REML")
+modPhytoslice <- rma.uni(yi, vi, data = out, mods = ~ depths - 1, subset = (respvar == "Phytopigments"), method = "REML")
+modMgsslice <- rma.uni(yi, vi, data = out, mods = ~ depths - 1, subset = (respvar == "Mean grain size"), method = "REML")
+
+
+
+varstab <- c("Chl-a", "Phaeopigments", "Phytopigments", "TIC", "TOC", "TN", "TOC/TN", "Dry bulk density", "Silt", "Mud content (< 63 µm)", "Mean grain size", "DIC", "Oxygen consumption", "NHx", "NOx", "Phosphate")
+
+varstab2 <- c("Chl-a", "Phaeopigments", "Phytopigments", "TOC", "TN", "TOC/TN", "Silt", "Mud content (< 63 µm)", "Mean grain size", "Oxygen consumption", "NHx", "Phosphate")
+
+
+```
+
+## Heatmaps
+
+```{r label, options}
+
+mods <- list(
+chla_test,
+phyto_test,
+phaeo_test,
+toc_test,
+tn_test,
+mgs_test,
+silt_test,
+toctn_test,
+NHx_test
+)
+
+
+
+plothm <- function(model){
+  
+  mod <- model
+  
+  mod$Strata <- factor(mod$Strata, levels = c("Surface", "Subsurface", "Deep", "Very deep", "Full sample"))
+  mod$Covar  <- factor(mod$Covar, levels = rev(c("log (timesincetrawl)", "trawling effort", "Current velocity", "Water depth", "Primary productivity", "habitat", "Season")))
+  # Define the manual break levels
+  break_levels <- c(-0.0001, 0.001001, 0.01001, 0.05001, 0.1, 1)
+  
+  # Discretize p-values into classes based on the manual breaks
+  mod$pvalue_class <- cut(mod$coeff_sig, breaks = break_levels, labels = c("<0.001", "0.001-0.01", "0.01-0.05", "0.05-0.1", ">0.1"))
+  
+  # # Discretize p-values into classes based on the manual breaks
+  # mod$pvalue_class <- cut(mod$int_sig, breaks = break_levels, labels = c("<0.001", "0.001-0.01", "0.01-0.05", "0.05-0.1", ">0.1"))
+  
+  # Define custom class names
+  class_names <- c("<0.001", "0.001-0.01", "0.01-0.05", "0.05-0.1", ">0.1")
+  
+  mod$pvalue_class <- factor(mod$pvalue_class, levels = class_names)
+    
+  # Define custom colors
+  custom_colors <- c("#993404", "#d95f0e","#fe9929", "#fed98e","#ffffd4")
+  
+    # Create a heatmap with discretized p-values using custom colors
+  p <- ggplot(mod, aes(x = Strata, y = Covar, fill = pvalue_class, label = round(coeff_est, 2))) +
+    geom_tile() +
+    geom_text(color = "black", size = 4.5) +
+    scale_fill_manual(
+      values = custom_colors,
+      labels = class_names,
+      drop = FALSE
+    ) +
+    labs(
+      title = paste(mod$Var),
+      x = "",
+      y = ""
+    ) + 
+    theme_minimal()
+  p
+  return(p)
+}
+
+
+hm_chla  <- plothm(mods[[1]])
+hm_phyt  <- plothm(mods[[2]])
+hm_phae  <- plothm(mods[[3]])
+hm_toc   <- plothm(mods[[4]])
+hm_tn    <- plothm(mods[[5]])
+hm_mgs   <- plothm(mods[[6]])
+hm_silt  <- plothm(mods[[7]])
+hm_toctn <- plothm(mods[[8]])
+hm_NHx   <- plothm(mods[[9]])
+
+gradplot <- hm_chla + hm_phyt + hm_phae + hm_toc + hm_tn + hm_toctn + hm_mgs + hm_silt + hm_NHx
+
+gradplot <- gradplot +  plot_annotation(tag_levels = "A") +
+  plot_layout(guides = "collect", ncol = 3, byrow = TRUE)
+
+gradplot
+
+ggsave("../figures/final/Heatmap_coefficients.png", units = "in", height = 13, width = 16)  
+
+ggsave("../figures/final/Heatmap_intercepts.png", units = "in", height = 13, width = 16)  
+
+```
+
+
+
 
 ## Overview-plot with lines
 
@@ -3293,6 +3537,10 @@ combined_plots
 
 ggsave("../figures/final/slicedepth_mainpars_truemean.png", units = "in", height = 9, width = 11)  
 
+siltslice <- plotdepthslices(var = "Silt", model = modSiltslice, avgdf = out, maintitle = "Silt", miny = -0.5, maxy = 0.7, textpos = 0.5)
+siltslice <- siltslice + theme(plot.margin = unit(c(20, 20, 20, 20), "pt"))
+
+siltslice
 ```
 
 
