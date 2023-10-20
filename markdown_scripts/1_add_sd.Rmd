@@ -17,7 +17,7 @@ We add missing standard deviations
 ```{r read data}
 
 # Load dataset
-df <- read.csv("../dataset/trawling_meta-analysis_grouped6_3_2023.csv")
+df <- read.csv("../dataset/trawling_meta-analysis_grouped11_10_2023.csv", sep = ";")
 colnames(df) <- make.names(colnames(df), unique=TRUE)
 
 # Make standard deviations positive
@@ -78,7 +78,7 @@ missingSD <- function(dff, mean, sd, nc, toremove){
       
       b <- 1
       
-    # If some need to be filled, it depends whetner n is 1 or n > 1.
+    # If some need to be filled, it depends whether n is 1 or n > 1.
     }else{
 
       for(j in tofill){

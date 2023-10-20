@@ -351,14 +351,7 @@ bplot <- function(df, var, mtitle, xtitle = "", droplev = FALSE, bwex = 0.8, pts
     
 
 # 8. Plot good data + model output
-var = "Mean grain size"
-model = modMgsslice
-avgdf = out
-maintitle = "Mean grain size"
-miny = -0.5
-maxy = 0.7
-textpos = 0.5
-    
+
 plotdepthslices <- function(var, model, avgdf, maintitle, miny, maxy, textpos){
       
   df <- with(model, cbind(b, se, zval, pval, ci.lb, ci.ub))
@@ -386,12 +379,6 @@ plotdepthslices <- function(var, model, avgdf, maintitle, miny, maxy, textpos){
 }
 
 # 9. Contvarplot + helper
-
-resp = "TOC"
-depvar = "watdepth"
-df = dfshort
-xlabz = "Water depth"
-
 ct <- function(x){return(length(which(x > 0)))}
 
 contvarplot <- function(resp, depvar, df, xlabz, log = FALSE) {

@@ -270,6 +270,10 @@ load(file = "../r_objects/shortdata.rda")
 
 ```
 
+
+
+# From here on go to "fin_meta_analysis_cleaned".
+
 # ALL ROWS
 
 ## Data wrangling

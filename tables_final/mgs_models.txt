@@ -1,13 +1,13 @@
 Var,Covar,Strata,QE,QM,QEp,QMp,int_est,int_sig,coeff_est,coeff_sig
-Mean grain size,log (timesincetrawl),Surface,13.425,0.064,0.098,0.8,-0.006,0.906,-0.004,0.8
-Mean grain size,log (timesincetrawl),Subsurface,1.877,1.449,0.598,0.229,0.055,0.707,-0.029,0.229
-Mean grain size,trawling effort,Surface,13.357,0.132,0.1,0.716,0.006,0.935,-0.003,0.716
-Mean grain size,trawling effort,Subsurface,6.776,0.082,0.238,0.774,-0.152,0.385,0.003,0.774
-Mean grain size,Current velocity,Surface,13.604,0.237,0.192,0.626,-0.057,0.422,0.399,0.626
-Mean grain size,Current velocity,Subsurface,3.99,3.168,0.858,0.075,-0.227,0.006,2.334,0.075
-Mean grain size,Water depth,Surface,18.113,0.994,0.079,0.319,-0.34,0.26,0.01,0.319
-Mean grain size,Water depth,Subsurface,3.61,3.548,0.89,0.06,-0.002,0.976,-0.002,0.06
-Mean grain size,Primary productivity,Surface,13.841,0,0.18,0.986,-0.025,0.67,-0.082,0.986
-Mean grain size,Primary productivity,Subsurface,3.251,3.907,0.918,0.048,-0.002,0.976,-8.817,0.048
-Mean grain size,Season,Surface,18.457,0.687,0.048,0.709,-0.095,0.184,0.071,0.409
-Mean grain size,Season,Subsurface,6.389,0.605,0.604,0.436,-0.011,0.924,-0.1,0.436
+Mean grain size,log (timesincetrawl),Surface,1.514,0.709,0.992,0.4,0.037,0.459,-0.012,0.4
+Mean grain size,log (timesincetrawl),Subsurface,1.659,1.278,0.646,0.258,0.094,0.643,-0.035,0.258
+Mean grain size,trawling effort,Surface,1.177,1.046,0.997,0.307,0.059,0.339,-0.009,0.307
+Mean grain size,trawling effort,Subsurface,5.269,0.292,0.384,0.589,-0.209,0.246,0.005,0.589
+Mean grain size,Current velocity,Surface,3.907,0.103,0.951,0.748,0.004,0.974,0.416,0.748
+Mean grain size,Current velocity,Subsurface,13.14,1.485,0.107,0.223,-0.204,0.138,2.678,0.223
+Mean grain size,Water depth,Surface,8.523,1.324,0.666,0.25,0.479,0.211,-0.014,0.25
+Mean grain size,Water depth,Subsurface,5.043,7.731,0.753,0.005,0.157,0.065,-0.003,0.005
+Mean grain size,Primary productivity,Surface,1.703,2.657,0.998,0.103,0.11,0.059,-7.828,0.103
+Mean grain size,Primary productivity,Subsurface,1.302,17.118,0.996,0,0.198,0.002,-19.212,0
+Mean grain size,Season,Surface,8.292,1.927,0.6,0.382,-0.002,0.976,0.07,0.386
+Mean grain size,Season,Subsurface,18.419,0.083,0.018,0.773,-0.011,0.952,-0.06,0.773

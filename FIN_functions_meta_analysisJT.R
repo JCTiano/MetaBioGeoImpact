@@ -7,9 +7,46 @@
 # Function to calculate average and tailed distributions for random effects assumption.
 # Calculates the mean and variance around true response ratio assuming a random effects model.
 # Average effect size +- confidence interval is calculated per variable --> Not taking into account slice depths.
-
+# JT changed 'iv' to 'i' (typo?)
 
 summarizer <- function(df) {
+  
+  dfn <- NULL
+  
+  for(i in (unique(df$respvar))){
+    
+    tt <- subset(df, df$respvar == i)
+    DF <- sum(complete.cases(tt$lnRR), na.rm = T) - 1 # degrees of freedom for observations that can be used
+    
+    # Calculations for log response ratios (lnRR)
+    Q  <- sum(tt$WY2, na.rm = T) - (sum(tt$WY, na.rm = T))^2/sum(tt$W, na.rm = T)
+    C  <- sum(tt$W, na.rm = T) - sum(tt$W^2, na.rm = T)/sum(tt$W, na.rm = T)
+    T2 <- pmax(0, (Q - DF)/C)         # tau squared (between studies variance) never negative
+    tt$WRand  <- 1/(tt$VarLnRR + T2)        # Weight = 1/variance within + variance between studies
+    tt$WYRand <- tt$WRand * tt$lnRR
+    
+    v <- i
+    M  <- round((sum(tt$WYRand, na.rm = T)/sum(tt$WRand, na.rm = T)), digits = 2) # summary EF calculation
+    Vm <- 1/(sum(tt$WRand, na.rm = T))     # variance
+    SD <- sd(tt$lnRR, na.rm = T)
+    SE <- sqrt(Vm)
+    LL <- round(M - 1.96 * SE, digits = 2)
+    UL <- round(M + 1.96 * SE, digits = 2)
+    Z  <- M/SE
+    pval <- 2*pnorm(q=Z, lower.tail=T)     # p value for 2 tailed test
+    n    <- length(tt$respvar)
+    s    <- length(unique(tt$article_id))
+    
+    dfn <- rbind(dfn, data.frame(v, M, Vm, SD, SE, LL, UL, Z, pval, n, s))
+    
+  }
+  return(dfn)
+}
+
+# JT !!! corrected the weighting. Was erronously weighted by 1 / the within study weight( this was the error) + between study variance ! 
+# it is now corrected to have the random weights equal to 1 / within + between study VARIANCE
+
+summarizerJT <- function(df) {
   
   dfn <- NULL
   
@@ -70,7 +107,6 @@ summarizer2 <- function(df) {
       C  <- sum(ts$W, na.rm = T) - sum(ts$W^2, na.rm = T)/sum(ts$W, na.rm = T)
       T2 <- pmax(0, (Q - DF)/C)       # tau squared (between studies variance) never negative
       ts$WRand  <- 1/(ts$VarLnRR + T2)        # Weight = 1/variance within + variance between studies
-      
       ts$WYRand <- ts$WRand * ts$lnRR
       
       v <- i
@@ -252,13 +288,91 @@ plotreg <- function(resp, depvar, df, xlabz, log = FALSE, sample="Surface", titl
   outdf <- NULL
   
   #for(i in 1:length(names(lengths))){
+    
+    sub3  <- subset(sub2, depths == sample)
+    
+    if(log == TRUE){
+      name2 <- log(sub3[,depvar]+1)
+    }else{
+      name2 <- sub3[,depvar]    
+    }
+    
+    mod   <- rma.mv(yi = lnRR, V = VarLnRR, mods = ~name2, random = ~ 1|article_type_id, data = sub3, method = "REML", control=list(rel.tol=1e-8))
+    # 
+    pint  <- mod$pval[1]
+    pcont <- mod$pval[2]
+    coeff <- mod$b[2]
+    # 
+    Col = adjustcolor("darkgreen", 0.5)
+    Col2 = adjustcolor("darkgreen", 0.5)
+    
+    #regplot(x = mod,
+    #        shade = mycol2, bg = mycol,
+    #        xlab = xlabz, ylab = "lnRR", main = names(lengths)[i],
+    #        cex.axis = 0.7, las = 1)
+    regplot(x = mod, bg = Col, col = Col2, shade = adjustcolor("black", 0.3), grid = T, refline = 0, 
+            ylab = "ln(RR)", main = title, log = "x",
+            xlab = xlabz, las = 1, lcol = c("white","grey25","grey1","grey50"), 
+            lty = c(1,0,1,1), lwd = c(2,1,1,2), cex.axis = 0.6, cex.lab = 0.75, cex.main = 0.8)
+    abline(h = 0, col = "darkgrey")
+    # 
+    # mtext(side = 3, text = paste0("Sig. intercept = ", round(pint, 4)), line = -1.5, adj = 0.05, cex = 0.7)
+    # mtext(side = 3, text = paste0("Sig. var. = ", round(pcont, 4)), line = -2.5, adj = 0.05, cex = 0.7)
+    # mtext(side = 3, text = paste0("Coeff. var. = ", round(coeff, 2)), line = -3.5, adj = 0.05, cex = 0.7)
+    # 
+    # newmodinf <- data.frame("Var" = resp,
+    #                         "Covar" = xlabz,
+    #                         "Strata" = names(lengths)[i],
+    #                         "QE" = mod$QE,
+    #                         "QM" = mod$QM,
+    #                         "QEp" = mod$QEp,
+    #                         "QMp" = mod$QMp,
+    #                         "int_est" = mod$b[1],
+    #                         "int_sig" = mod$pval[1],
+    #                         "coeff_est" = mod$b[2],
+    #                         "coeff_sig" = mod$pval[2]
+    # )
+    # 
+    # outdf <- rbind(outdf, newmodinf)
+    
+    
+  }
+  
+  #return(outdf)
+  
+#}
+
+
+plotreg2 <- function(resp, depvar, df, xlabz, logvar = FALSE, sample="Surface", title = "") {
+  
+  # Subset of our variable
+  sub <- subset(df, respvar == resp)
+  t <- table(sub$article_type_id, sub$depths)
+  
+  # filters out when too few individual studies.
+  lengths <- apply(t, 2, ct)
+  lengths <- lengths[lengths >= 3] 
+  sub2    <- subset(sub, depths %in% names(lengths))
+  
+  # make model with interactions
+  if(logvar == TRUE){
+    name <- log(sub2[,depvar]+1)
+  }else{
+    name <- sub2[,depvar]+0.0001    
+  }
+  
+  res <- rma.mv(yi = lnRR, V = VarLnRR, mods = ~depths*name, random = ~ 1|article_type_id, data = sub2, method = "REML")
+  
+  outdf <- NULL
+  
+  #for(i in 1:length(names(lengths))){
   
   sub3  <- subset(sub2, depths == sample)
   
-  if(log == TRUE){
+  if(logvar == TRUE){
     name2 <- log(sub3[,depvar]+1)
   }else{
-    name2 <- sub3[,depvar]    
+    name2 <- sub3[,depvar]+0.0001    
   }
   
   mod   <- rma.mv(yi = lnRR, V = VarLnRR, mods = ~name2, random = ~ 1|article_type_id, data = sub3, method = "REML", control=list(rel.tol=1e-8))
@@ -275,31 +389,36 @@ plotreg <- function(resp, depvar, df, xlabz, log = FALSE, sample="Surface", titl
   #        xlab = xlabz, ylab = "lnRR", main = names(lengths)[i],
   #        cex.axis = 0.7, las = 1)
   regplot(x = mod, bg = Col, col = Col2, shade = adjustcolor("black", 0.3), grid = T, refline = 0, 
-          ylab = "ln(RR)", main = title,
+          ylab = "ln(RR)", main = title, log = "x",
           xlab = xlabz, las = 1, lcol = c("white","grey25","grey1","grey50"), 
           lty = c(1,0,1,1), lwd = c(2,1,1,2), cex.axis = 0.6, cex.lab = 0.75, cex.main = 0.8)
   abline(h = 0, col = "darkgrey")
   # 
-  mtext(side = 3, text = paste0("Sig. intercept = ", round(pint, 4)), line = -1.5, adj = 0.05, cex = 0.7)
-  mtext(side = 3, text = paste0("Sig. var. = ", round(pcont, 4)), line = -2.5, adj = 0.05, cex = 0.7)
-  mtext(side = 3, text = paste0("Coeff. var. = ", round(coeff, 2)), line = -3.5, adj = 0.05, cex = 0.7)
+  # mtext(side = 3, text = paste0("Sig. intercept = ", round(pint, 4)), line = -1.5, adj = 0.05, cex = 0.7)
+  # mtext(side = 3, text = paste0("Sig. var. = ", round(pcont, 4)), line = -2.5, adj = 0.05, cex = 0.7)
+  # mtext(side = 3, text = paste0("Coeff. var. = ", round(coeff, 2)), line = -3.5, adj = 0.05, cex = 0.7)
+  # 
+  # newmodinf <- data.frame("Var" = resp,
+  #                         "Covar" = xlabz,
+  #                         "Strata" = names(lengths)[i],
+  #                         "QE" = mod$QE,
+  #                         "QM" = mod$QM,
+  #                         "QEp" = mod$QEp,
+  #                         "QMp" = mod$QMp,
+  #                         "int_est" = mod$b[1],
+  #                         "int_sig" = mod$pval[1],
+  #                         "coeff_est" = mod$b[2],
+  #                         "coeff_sig" = mod$pval[2]
+  # )
+  # 
+  # outdf <- rbind(outdf, newmodinf)
   
-  newmodinf <- data.frame("Var" = resp,
-                          "Covar" = xlabz,
-                          "Strata" = names(lengths)[i],
-                          "QE" = mod$QE,
-                          "QM" = mod$QM,
-                          "QEp" = mod$QEp,
-                          "QMp" = mod$QMp,
-                          "int_est" = mod$b[1],
-                          "int_sig" = mod$pval[1],
-                          "coeff_est" = mod$b[2],
-                          "coeff_sig" = mod$pval[2]
-  )
-  
-  outdf <- rbind(outdf, newmodinf)
   
 }
+
+#return(outdf)
+
+#}
 
 # 6. ModTab
 # Extract info from means-per-slice models
@@ -333,7 +452,7 @@ plothmcoeff <- function(model){
   mod <- model
   
   mod$Strata <- factor(mod$Strata, levels = c("Surface", "Subsurface", "Deep", "Very deep", "Full sample"))
-  mod$Covar  <- factor(mod$Covar, levels = rev(c("log (time since disturbance)", "Fishing effort", "Current velocity", "Water depth", "Primary productivity", "habitat", "Season")))
+  mod$Covar  <- factor(mod$Covar, levels = rev(c("log (timesincetrawl)", "trawling effort", "Current velocity", "Water depth", "Primary productivity", "habitat", "Season")))
   # Define the manual break levels
   break_levels <- c(-0.0001, 0.001001, 0.01001, 0.05001, 0.1, 1)
   
@@ -376,7 +495,7 @@ plothmint <- function(model){
   mod <- model
   
   mod$Strata <- factor(mod$Strata, levels = c("Surface", "Subsurface", "Deep", "Very deep", "Full sample"))
-  mod$Covar  <- factor(mod$Covar, levels = rev(c("log (time since disturbance)", "Fishing effort", "Current velocity", "Water depth", "Primary productivity", "habitat", "Season")))
+  mod$Covar  <- factor(mod$Covar, levels = rev(c("log (timesincetrawl)", "trawling effort", "Current velocity", "Water depth", "Primary productivity", "habitat", "Season")))
   # Define the manual break levels
   break_levels <- c(-0.0001, 0.001001, 0.01001, 0.05001, 0.1, 1)
   
@@ -413,70 +532,70 @@ plothmint <- function(model){
   return(p)
 }
 
-
 # 7b. Plot HM with less covariates
 # Plot a heatmap of either the coefficients or the intercepts.
 
 plothmcoeff2 <- function(model, labz = TRUE){
+
+mod <- model
+
+mod$Strata <- factor(mod$Strata, levels = c("Surface", "Subsurface", "Deep", "Very deep", "Full sample"))
+mod$Covar  <- factor(mod$Covar, levels = rev(c("log (timesincetrawl)", "Current velocity", "Water depth", "Primary productivity")))
+# Define the manual break levels
+break_levels <- c(-0.0001, 0.001001, 0.01001, 0.05001, 0.1, 1)
+
+# Discretize p-values into classes based on the manual breaks
+mod$pvalue_class <- cut(mod$coeff_sig, breaks = break_levels, labels = c("<0.001", "0.001-0.01", "0.01-0.05", "0.05-0.1", ">0.1"))
+
+# # Discretize p-values into classes based on the manual breaks
+# mod$pvalue_class <- cut(mod$int_sig, breaks = break_levels, labels = c("<0.001", "0.001-0.01", "0.01-0.05", "0.05-0.1", ">0.1"))
+
+# Define custom class names
+class_names <- c("<0.001", "0.001-0.01", "0.01-0.05", "0.05-0.1", ">0.1")
+
+mod$pvalue_class <- factor(mod$pvalue_class, levels = class_names)
+
+# Define custom colors
+custom_colors <- c("#993404", "#d95f0e","#fe9929", "#fed98e","#ffffd4")
+
+if (labz == TRUE) {
+
+# Create a heatmap with discretized p-values using custom colors
+p <- ggplot(mod, aes(x = Strata, y = Covar, fill = pvalue_class, label = round(coeff_est, 2))) +
+  geom_tile() +
+  geom_text(color = "black", size = 4.5) +
+  scale_fill_manual(
+    values = custom_colors,
+    labels = class_names,
+    drop = FALSE
+  ) +
+  labs(
+    title = paste(mod$Var),
+    x = "",
+    y = ""
+  ) + 
+  theme_minimal()
+
+} else {
   
-  mod <- model
-  
-  mod$Strata <- factor(mod$Strata, levels = c("Surface", "Subsurface", "Deep", "Very deep", "Full sample"))
-  mod$Covar  <- factor(mod$Covar, levels = rev(c("log (time since disturbance)", "Current velocity", "Water depth", "Primary productivity")))
-  # Define the manual break levels
-  break_levels <- c(-0.0001, 0.001001, 0.01001, 0.05001, 0.1, 1)
-  
-  # Discretize p-values into classes based on the manual breaks
-  mod$pvalue_class <- cut(mod$coeff_sig, breaks = break_levels, labels = c("<0.001", "0.001-0.01", "0.01-0.05", "0.05-0.1", ">0.1"))
-  
-  # # Discretize p-values into classes based on the manual breaks
-  # mod$pvalue_class <- cut(mod$int_sig, breaks = break_levels, labels = c("<0.001", "0.001-0.01", "0.01-0.05", "0.05-0.1", ">0.1"))
-  
-  # Define custom class names
-  class_names <- c("<0.001", "0.001-0.01", "0.01-0.05", "0.05-0.1", ">0.1")
-  
-  mod$pvalue_class <- factor(mod$pvalue_class, levels = class_names)
-  
-  # Define custom colors
-  custom_colors <- c("#993404", "#d95f0e","#fe9929", "#fed98e","#ffffd4")
-  
-  if (labz == TRUE) {
-    
-    # Create a heatmap with discretized p-values using custom colors
-    p <- ggplot(mod, aes(x = Strata, y = Covar, fill = pvalue_class, label = round(coeff_est, 2))) +
-      geom_tile() +
-      geom_text(color = "black", size = 4.5) +
-      scale_fill_manual(
-        values = custom_colors,
-        labels = class_names,
-        drop = FALSE
-      ) +
-      labs(
-        title = paste(mod$Var),
-        x = "",
-        y = ""
-      ) + 
-      theme_minimal()
-    
-  } else {
-    
-    p <- ggplot(mod, aes(x = Strata, y = Covar, fill = pvalue_class, label = round(coeff_est, 2))) +
-      geom_tile() +
-      geom_text(color = "black", size = 4.5) +
-      scale_fill_manual(
-        values = custom_colors,
-        labels = class_names,
-        drop = FALSE
-      ) +
-      labs(
-        title = paste(mod$Var),
-        x = "",
-        y = ""
-      ) + 
-      theme_minimal() + 
-      theme(axis.text.y = element_blank())
-    
-  }
-  p
-  return(p)
+p <- ggplot(mod, aes(x = Strata, y = Covar, fill = pvalue_class, label = round(coeff_est, 2))) +
+    geom_tile() +
+    geom_text(color = "black", size = 4.5) +
+    scale_fill_manual(
+      values = custom_colors,
+      labels = class_names,
+      drop = FALSE
+    ) +
+    labs(
+      title = paste(mod$Var),
+      x = "",
+      y = ""
+    ) + 
+    theme_minimal() + 
+    theme(axis.text.y = element_blank())
+
 }
+p
+return(p)
+}
+

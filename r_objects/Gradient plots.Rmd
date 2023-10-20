@@ -22,6 +22,7 @@ source("Plot.functions3.R")
 load("../r_objects/Grad.rda")
 load("Grad_new.rda")
 GradInfo = df
+
 ```
 
 
@@ -58,6 +59,7 @@ GrPlot("OM (LOI)", textpos = tpos, start = F, row  = 2, textpos2 = tpos2)
 GrPlot("TN", textpos = tpos, start = F, row  = 1, textpos2 = tpos2)
 textpos = -23
 #dev.off()
+
 ```
 
 Function for summary effect size Standardized Mean Difference
