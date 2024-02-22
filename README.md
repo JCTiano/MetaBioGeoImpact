@@ -1,5 +1,5 @@
-# Metastudy
- Workflow from dataset to figures and results shown in the article.
+# Meta-study
+ Workflow from dataset to figures and results shown in the meta-analysis of bottom trawl impacts on biogeochemistry.
 
 # Folder structures
 
