@@ -40,6 +40,12 @@ df$response2=NA
 df$SD2=NA
 df$n2=NA
 
+# For reviewer
+df$sdnoteAC=NA
+df$sdnoteAI=NA
+df$sdnoteBI=NA
+df$sdnoteBC=NA
+
 ```
 
 ## Fill in missing sd
@@ -54,41 +60,58 @@ df$n2=NA
 
 # Function is missSD and requires columns of the specific treatment to be filled in.
 # I don't think i can use all treatments together to calculate missing sd.
+## Debugging
+dff = newdf
+mean = 3
+sd = 6
+nc = 7
+toremove = 59
+sdnote = 69
+i <- "Chl-a"
 
-missingSD <- function(dff, mean, sd, nc, toremove){
+infolist <- NULL
+
+missingSD <- function(dff, mean, sd, nc, toremove, sdnote){
   
   for (i in unique(dff[["Response.variable"]])){
     
-    subset <- dff[dff["Response.variable"] == i,]
+    subset <- dff[dff["Response.variable"] == i,] # Select subset of variable i
     tofill <- which(is.na(subset[,sd]) & !is.na(subset[,mean]))  # which rows with SD's need to be filled?
     filled <- which(!is.na(subset[,sd]) & !is.na(subset[,mean])) # which rows are filled.
+    
+    infolist[[i]]$ntotal <- length(subset[,mean])
     
     # If there are more sd's to be estimated than known sd's, they should all be removed.
     if(length(tofill) > length(filled)){
       
       dff[toremove][as.numeric(rownames(subset))[tofill],] <- "YES"
+      dff[sdnote][as.numeric(rownames(subset))[tofill],] <- "more missing SD than known SD"
     
     # If all sd's should be estimated, they should all be removed.
     }else if (length(tofill) == length(subset[sd])){
       
       dff[toremove][as.numeric(rownames(subset))[tofill],] <- "YES"
-
+      dff[sdnote][as.numeric(rownames(subset))[tofill],] <- "All SD missing"
+      
     # If no sd's need to be filled, do nothing.
     }else if (length(tofill) == 0){
       
       b <- 1
+      dff[sdnote][as.numeric(rownames(subset))[tofill],] <- "All SD present"
       
     # If some need to be filled, it depends whether n is 1 or n > 1.
     }else{
-
+      print("Some need to be filled")
       for(j in tofill){
         
         dff$sdadded[as.numeric(rownames(subset)[j])] <- 1
 
         if(subset[j,nc] == 1){             # If n = 1 then the sd is just 0.
           
+          print("n = 1")
           # Add highest found sd.
           subset[j, sd] <- max(subset[sd], na.rm = TRUE)
+          subset[j, sdnote] <- "n = 1 so max SD added"
           
         } else{
           
@@ -101,13 +124,14 @@ missingSD <- function(dff, mean, sd, nc, toremove){
           # Calc the new sd with formula from book and replace sd.
           newsd     <- subset[j, mean] * ssd/smean
           subset[j, sd] <- abs(newsd)
+          subset[j, sdnote] <- "averaged existing SD added"
           
         }     
 
       }
       
       dff[sd][as.numeric(rownames(subset)),] <- subset[[sd]]
-
+      dff[sdnote][as.numeric(rownames(subset)),] <- subset[[sdnote]]
     }
   }
   return(dff)
@@ -115,10 +139,10 @@ missingSD <- function(dff, mean, sd, nc, toremove){
 
 
 newdf <- df
-newdf <- missingSD(dff = newdf, mean = 3 , sd = 6 , nc = 7 , toremove = 59) # after control
-newdf <- missingSD(dff = newdf, mean = 42, sd = 45, nc = 46, toremove = 60) # after impact
-newdf <- missingSD(dff = newdf, mean = 47, sd = 50, nc = 51, toremove = 61) # before impact
-newdf <- missingSD(dff = newdf, mean = 52, sd = 55, nc = 56, toremove = 62) # before control
+newdf <- missingSD(dff = newdf, mean = 3 , sd = 6 , nc = 7 , toremove = 59, sdnote = 69) # after control
+newdf <- missingSD(dff = newdf, mean = 42, sd = 45, nc = 46, toremove = 60, sdnote = 70) # after impact
+newdf <- missingSD(dff = newdf, mean = 47, sd = 50, nc = 51, toremove = 61, sdnote = 71) # before impact
+newdf <- missingSD(dff = newdf, mean = 52, sd = 55, nc = 56, toremove = 62, sdnote = 72) # before control
 
 ```
 
@@ -158,5 +182,32 @@ save(newdf, file = "../dataset/dataset.rdata")
 #     }
 #   return(dff[,sd])
 # }
+
+```
+
+```{r label, options}
+
+chl <- c(3.502333333,
+6.26,
+4.849666667,
+4.5055,
+5.081333333,
+7.4575,
+4.675,
+8.5285
+)
+
+diepte <- c(-554,
+-416,
+-403,
+-400,
+-382,
+-311,
+-289,
+-220
+)
+
+lm(chl~diepte)
+
 
 ```

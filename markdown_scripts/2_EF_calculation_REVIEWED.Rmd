@@ -1,0 +1,238 @@
+---
+title: "Effect size calculation for meta-analysis, for REVIEW"
+author: "Justin Tiano, Emil De Borger"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+
+---
+
+# INTRODUCTION
+
+This script organizes the meta-analysis data to calculate the effect size fishing has on different variables (log response ratio).
+We first look at all the data which was extracted from literature, and visualize the range of response ratios found there.
+Then, we select the rows of data we can use for meta-regression and calculating more advanced summary statistics. We have to do this since not all means have a standard deviation / other error measure that can be converted. These rows, if the SD cannot be imputed (see add_sd.rmd), have to be filtered out.
+
+```{r loading required packages, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(tidyr)
+library(ggforce)
+library(ggplot2)
+library(metafor)
+library(magrittr)
+library(patchwork)
+library(scales)
+library(dplyr)
+library(gridExtra)
+library(maps)
+source("~/GitHub/Metastudy2/source_code/Plot.functions.R")
+
+```
+
+# DATA WRANGLING
+
+--> Load dataset with added sd's where possible.
+
+```{r read dataset}
+
+df <- get(load("../dataset/dataset.rdata"))
+
+```
+
+## Organize columns to calculate lnRR
+
+Response ratios can be calculated for all rows, but then there are 2 sets of data to work with:
+
+--> ALL ROWS: Full data which we use only for checking range of response ratios.
+--> SELECTED ROWS: Selected data with only complete information rows.
+
+- BA - Studies   --> response1 = before , response 2 = after.
+- CI - Studies   --> response1 = control, response 2 = impact.
+- BACI - Studies --> response1 = ratio after/before control, response 2 = ratio after/before impact.
+
+```{r remove where SD should be removed}
+
+notok <- "More missing SD than known SD remove all"
+
+df <- df[df$noteresp1 != notok & df$noteresp2 != notok,]
+df <- df[df$note == "OK", ]
+
+```
+
+## Calculate lnRR and VlnRR
+
+Log response ratio is calculated as (1) :
+$ln(\overline{x}_{2}/\overline{x}_{1})$                                      (1), 
+with $\overline{x}_{2}$ and $\overline{x}_{1})$ the means of the studied variable 
+in the impact vs. control, or after vs. before samples respectively.
+
+VarLnRR is calculated by first calculating the pooled standard deviation $S$ (2),
+$S_{pooled} = \sqrt{\frac{(n_{1}-1)S^2_{1} + (n_{2}-1)S^2_{2}}{n_{1}+n_{2}-2}}$ (2)
+and using $S$ to calculate the variance $V_{D}$ (3). See Borenstein et al., 2009
+$V_{D} = \sqrt{\frac{S^2_{1}}{n_{1}} + \frac{S^2_{2}}{n_{2}}}$               (3)
+
+```{r calculate response ratio, warning=FALSE}
+
+# Adding a small value to 0's in responses to avoid NA's # --> 31 rows, gravel, excess Th, excess Pb210.
+df <- df[-which(df$response1 == 0),]
+df <- df[-which(df$response2 == 0),]
+
+# Calculate lnRR
+df$lnRR = log(df$response2/df$response1)
+
+# # Remove NaN log-responses (log(-n))
+df     <- df[-which(is.nan(df$lnRR)),] 
+
+# Below is no longer necessary.
+# Change Infinities to NA --> X/0 or 0/x
+# df$lnRR[df$lnRR == Inf]  = NA  # log(x/0)
+# df$lnRR[df$lnRR == -Inf] = NA  # log(0/x)
+
+# nalnrr <- which(is.na(df$lnRR)) # Rows where no response ratio is calculated.
+# 
+# # Overwrite full df with df with NA rows removed.
+# # Finally DF is of length 2735.
+# remrows <- df[nalnrr,]
+# df      <- df[-nalnrr,]
+
+fulldata <- df
+
+table_fulldata <- sort(table(fulldata$Response.variable), decreasing = TRUE)
+table_fulldata <- as.data.frame(table_fulldata)
+
+studies <- NULL
+for(i in table_fulldata$Var1){
+  sub <- fulldata$article_type_id[fulldata$Response.variable == i]
+  cnt <- length(unique(sub))
+  studies <- c(studies, cnt)
+}
+
+table_fulldata$studies <- studies
+
+```
+
+## A figure for the variables we have and will use.
+
+```{r}
+
+variablesfull <- ggplot(table_fulldata, aes(x = Var1, y = Freq)) +
+  geom_bar(stat = "identity", fill = "lightgrey") +
+  labs(y = "Samples", x = "") +
+  theme_classic() +
+  geom_text(label = studies, vjust = -0.5, color = "black", size = 3) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+variablesfull
+ggsave("../figures/final_review/samples_per_variable_fulldata.png", units = "in", height = 5, width = 9)
+
+variablesmorethan10 <- ggplot(subset(table_fulldata, Freq >= 10), aes(x = Var1, y = Freq)) +
+  geom_bar(stat = "identity", fill = "lightgrey") +
+  labs(y = "Samples", x = "") +
+  theme_classic() +
+  geom_text(data = subset(table_fulldata, Freq >= 10), aes(x = Var1, y = Freq, label = studies), vjust = -0.5, color = "black", size = 3) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+variablesmorethan10
+
+ggsave("../figures/final_review/samples_per_variable_fulldata_morethan10.png", units = "in", height = 5, width = 9)
+
+```
+
+## Standard deviations and weights.
+
+-> Variances lower than 0.01 are assigned a value of 0.01, because otherwise this leads to very large weights which tend to dominate the analysis.
+
+```{r pooled standard deviation and weights}
+
+# Pooled standard deviation
+df$Spooled = sqrt(((df$n1 - 1) * (df$SD1^2) + (df$n2 - 1) * (df$SD2^2)) / (df$n1 + df$n2 - 2))
+
+# VlnRR
+df$VarLnRR = df$Spooled^2 * ( 1 / (df$n1 * df$response1^2) + 1 / (df$n2 * df$response2^2))
+
+novarrows <- which(is.na(df$VarLnRR))
+dfshort   <- df[-novarrows, ]
+
+## Before After Control Impact [BACI] VarlnRR
+## Calculation is different for BACI, prev. values are overwritten BACI rows.
+dfshort$VarLnRR[dfshort$Study.type == "Before After Control Impact"] =
+  dfshort$SD_After_control[dfshort$Study.type == "Before After Control Impact"]^2 / 
+    (dfshort$n_After_control[dfshort$Study.type == "Before After Control Impact"] * dfshort$Mean_After_control[dfshort$Study.type == "Before After Control Impact"]^2) +
+  
+  dfshort$SD_Before_control[dfshort$Study.type=="Before After Control Impact"]^2 / 
+    (dfshort$n_Before_control[dfshort$Study.type=="Before After Control Impact"] * dfshort$Mean_Before_control[dfshort$Study.type == "Before After Control Impact"]^2) + 
+  
+  dfshort$SD_After_impact[dfshort$Study.type == "Before After Control Impact"]^2 / 
+    (dfshort$n_After_impact[dfshort$Study.type == "Before After Control Impact"] * dfshort$Mean_After_impact[dfshort$Study.type == "Before After Control Impact"]^2) +
+  
+  dfshort$SD_Before_impact[dfshort$Study.type == "Before After Control Impact"]^2 /
+    (dfshort$n_Before_impact[dfshort$Study.type == "Before After Control Impact"] * dfshort$Mean_Before_impact[dfshort$Study.type == "Before After Control Impact"]^2)
+
+# Remove those 3 NA's produced
+dfshort   <- dfshort[-which(is.na(dfshort$VarLnRR)), ]
+
+dfshort$ogVarLnRR <- dfshort$VarLnRR
+
+dfshort$VarLnRR[dfshort$VarLnRR < 0.01] <- 0.01
+
+# Weight (W) for lnRR effect size
+dfshort$W         <- 1 / dfshort$VarLnRR
+dfshort$WY        <- dfshort$W * dfshort$lnRR
+dfshort$WY2       <- dfshort$W * dfshort$lnRR^2
+dfshort$WYsquared <- dfshort$WY^2
+
+```
+
+## Change names dfshort 
+
+-> For easier manipulation.
+
+```{r}
+
+# Edit column names for to facilitate modelling.
+colnames(dfshort)[colnames(dfshort) == "Response.variable"]                     <- "respvar"
+colnames(dfshort)[colnames(dfshort) == "Sample.core.depth.slice"]               <- "slicedepth"
+colnames(dfshort)[colnames(dfshort) == "Study.type"]                            <- "stype"
+colnames(dfshort)[colnames(dfshort) == "Harmonized_study.type"]                 <- "hstype"
+colnames(dfshort)[colnames(dfshort) == "Water.depth..m."]                       <- "watdepth"
+colnames(dfshort)[colnames(dfshort) == "Trawling.effort_numerical_harmonized"]  <- "heffortnum"
+colnames(dfshort)[colnames(dfshort) == "Trawling_effort_GFW"]                   <- "effortGFW"
+colnames(dfshort)[colnames(dfshort) == "Model_Chl_bottom..mg.m3"]               <- "chlabot"
+colnames(dfshort)[colnames(dfshort) == "Model_Current_velocity..m.s."]          <- "cvel"
+colnames(dfshort)[colnames(dfshort) == "Model_Dissolved_Oxygen..mol.m3."]       <- "O2bot"
+colnames(dfshort)[colnames(dfshort) == "Model_NO3_bottom..mol.m3."]             <- "nitbot"
+colnames(dfshort)[colnames(dfshort) == "Model_PO4_bottom..mol.m3."]             <- "phosbot"
+colnames(dfshort)[colnames(dfshort) == "Model_Sal_bottom"]                      <- "salbot"
+colnames(dfshort)[colnames(dfshort) == "Model_Silicate_bottom..mol.m3."]        <- "silbot"
+colnames(dfshort)[colnames(dfshort) == "Model_Temp_bottom"]                     <- "tempbot"
+colnames(dfshort)[colnames(dfshort) == "Model_NPP_surface..g.m3.day."]          <- "nppsurf"
+colnames(dfshort)[colnames(dfshort) == "dist_shore..m."]                        <- "shoredist"
+colnames(dfshort)[colnames(dfshort) == "Time.since.trawl..days."]               <- "timesincetrawl"
+colnames(dfshort)[colnames(dfshort) == "Time.since.first.disturbance..years."]  <- "timefirstdist"
+colnames(dfshort)[colnames(dfshort) == "Habitat.type_harmonized"]               <- "hhabtype"
+colnames(dfshort)[colnames(dfshort) == "Seasonality_harmonized"]                <- "hseason"
+colnames(dfshort)[colnames(dfshort) == "Trawling.gear.type_harmonized"]         <- "gear"
+colnames(dfshort)[colnames(dfshort) == "Historically.fished"]                   <- "histfished"
+colnames(dfshort)[colnames(dfshort) == "Trawling.effort_categorical"]           <- "effortcat"
+colnames(dfshort)[colnames(dfshort) == "Trawling.effort_units_harmonized"]      <- "heffortunits"
+colnames(dfshort)[colnames(dfshort) == "Control_historically_trawled"]          <- "CTRLhisttrawled"
+
+```
+
+## Saving two dataframes as separate entities.
+
+```{r}
+
+save(file = "../r_objects/fulldata.rda", fulldata)
+save(file = "../r_objects/shortdata.rda", dfshort)
+
+load(file = "../r_objects/fulldata.rda")
+load(file = "../r_objects/shortdata.rda")
+
+```

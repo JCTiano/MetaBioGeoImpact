@@ -39,7 +39,7 @@ mycol2 <- rgb(95, 158, 160, max = 255, alpha = 25, names = "Pine Green")
 
 ```
 
-# DATA WRANGLING
+# DATA WRANGLING 
 
 --> Load dataset with added sd's where possible.
 

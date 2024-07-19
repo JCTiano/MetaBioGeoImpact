@@ -1,8 +1,93 @@
 ## Functions that are used in the meta-analysis --> Clean version
+  
+# 0. Average per study
 
+avgstud <- function(df){
+  
+  dfn <- NULL
+  
+  for(i in (unique(df$respvar))){
+    
+    subset <- df[df$respvar == i,]
+    
+    for(s in (unique(subset$article_type_id))){
+      
+      subset2  <- subset[subset$article_type_id == s, ]
+      newn     <- (subset2$n1 + subset2$n2) / 2
+      avglnrr  <- sum(subset2$lnRR*newn)/sum(newn)
+      avgvarln <- sum(subset2$ogVarLnRR*newn)/sum(newn)
+      
+      dfn <- rbind(dfn, data.frame(i, s, avglnrr, avgvarln, sum(newn)))
+    }
+    
+  }
+  return(dfn)
+  
+}
+
+
+avgstud2 <- function(df){
+  
+  dfn <- NULL
+  
+  for(i in (unique(df$respvar))){
+    
+    subset <- df[df$respvar == i,]
+    
+    for(us in (unique(subset$article_type_id))){
+      
+      subset2  <- subset[subset$article_type_id == us, ]
+      
+      if(nrow(subset2) == 1){
+        
+        v <- i
+        M <- subset2$lnRR
+        Vm <- subset2$ogVarLnRR
+        SD <- Vm^2
+        SE <- sqrt(Vm)
+        LL <- round(M - 1.96 * SE, digits = 2)
+        UL <- round(M + 1.96 * SE, digits = 2)
+        Z  <- M/SE
+        pval <- 2*pnorm(q=Z, lower.tail=T)  
+        n    <- length(subset2$respvar)
+        s    <- length(unique(subset2$article_id))
+        dfn <- rbind(dfn, data.frame(v, M, Vm, SD, SE, LL, UL, Z, pval, n, s, us))
+        
+      }else{
+        DF <- sum(complete.cases(subset2$lnRR), na.rm = T) - 1 # degrees of freedom for observations that can be used
+        
+        # Calculations for log response ratios (lnRR)
+        Q  <- sum(subset2$WY2, na.rm = T) - (sum(subset2$WY, na.rm = T))^2/sum(subset2$W, na.rm = T)
+        C  <- sum(subset2$W, na.rm = T) - sum(subset2$W^2, na.rm = T)/sum(subset2$W, na.rm = T)
+        T2 <- pmax(0, (Q - DF)/C)         # tau squared (between studies variance) never negative
+        subset2$WRand  <- 1/(subset2$ogVarLnRR + T2)        # Weight = 1/variance within + variance between studies
+        subset2$WYRand <- subset2$WRand * subset2$lnRR
+        
+        v <- i
+        M  <- round((sum(subset2$WYRand, na.rm = T)/sum(subset2$WRand, na.rm = T)), digits = 2) # summary EF calculation
+        Vm <- 1/(sum(subset2$WRand, na.rm = T))     # variance
+        SD <- sd(subset2$lnRR, na.rm = T)
+        SE <- sqrt(Vm)
+        LL <- round(M - 1.96 * SE, digits = 2)
+        UL <- round(M + 1.96 * SE, digits = 2)
+        Z  <- M/SE
+        pval <- 2*pnorm(q=Z, lower.tail=T)     # p value for 2 tailed test
+        n    <- length(subset2$respvar)
+        s    <- length(unique(subset2$article_id))
+        
+        dfn <- rbind(dfn, data.frame(v, M, Vm, SD, SE, LL, UL, Z, pval, n, s, us))
+      }
+      
+    }
+    
+  }
+  rem <- which(dfn$Vm == 0)
+  dfn <- dfn[-rem,]
+  return(dfn)
+  
+}
 
 # 1. Summarizer
-
 
 # Function to calculate average and tailed distributions for random effects assumption.
 # Calculates the mean and variance around true response ratio assuming a random effects model.
@@ -43,6 +128,56 @@ summarizer <- function(df) {
   return(dfn)
 }
 
+# 1b_review. Summarizer
+
+# Function to calculate average and tailed distributions for random effects assumption.
+# Calculates the mean and variance around true response ratio assuming a random effects model.
+# Average effect size +- confidence interval is calculated per variable --> Not taking into account slice depths.
+# JT changed 'iv' to 'i' (typo?)
+# 
+# df <- dfshort
+# i <- unique(df$respvar)[1]
+
+summarizerb <- function(df) {
+  
+  dfn <- NULL
+  
+  for(i in (unique(df$respvar))){
+
+    print(i)
+    tt <- subset(df, df$respvar == i)
+    sel <- which(tt$VarLnRR != 0)
+    tt <- tt[sel,]
+    
+    if(length(tt$respvar) < 3){
+      print(paste0("for ", i, " not enough rows."))
+    } else{
+      
+    tt <- escalc(data = tt, yi = lnRR, vi = VarLnRR) # Just transforming in escalc object
+    varcov <- vcalc(vi = vi, cluster = article_type_id, data = tt, nearpd = TRUE) # cluster variances in variance-covariance matrix per study type for use in aggregate.
+    tt <- aggregate(x = tt, cluster = article_type_id, V = varcov, struct = "CS", weighted = FALSE, addk = TRUE) # aggregate effect sizes in single study effect size.
+      
+    out <- rma(data = tt, yi = yi, vi = vi)
+    
+    M <- round(out$b, 2)
+    SD <- out$se/sqrt(length(tt$respvar))
+    Vm <- SD^2
+    SE <- out$se
+    LL <- round(out$ci.lb, 2)
+    UL <- round(out$ci.ub, 2)
+    Z <- out$zval
+    pval <- round(out$pval, 4)
+    n    <- length(tt$respvar)
+    s    <- length(unique(tt$article_id))
+    v <- i
+    
+    dfn <- rbind(dfn, data.frame(v, M, Vm, SD, SE, LL, UL, Z, pval, n, s))
+    }
+  }
+  return(dfn)
+}
+
+
 # JT !!! corrected the weighting. Was erronously weighted by 1 / the within study weight( this was the error) + between study variance ! 
 # it is now corrected to have the random weights equal to 1 / within + between study VARIANCE
 
@@ -61,7 +196,7 @@ summarizerJT <- function(df) {
     Q  <- sum(tt$WY2, na.rm = T) - (sum(tt$WY, na.rm = T))^2/sum(tt$W, na.rm = T)
     C  <- sum(tt$W, na.rm = T) - sum(tt$W^2, na.rm = T)/sum(tt$W, na.rm = T)
     T2 <- pmax(0, (Q - DF)/C)         # tau squared (between studies variance) never negative
-    tt$WRand  <- 1/(tt$VarLnRR + T2)        # Weight = 1/variance within + variance between studies
+    tt$WRand  <- 1/(tt$VarLnRR + T2)  # Weight = 1/variance within + variance between studies
     tt$WYRand <- tt$WRand * tt$lnRR
     
     v <- i
@@ -126,6 +261,56 @@ summarizer2 <- function(df) {
       
     }
     
+  }
+  return(dfn)
+}
+
+# 2b. Summarizer2b
+
+
+# Function to calculate average and tailed distributions for random effects assumption.
+## With study types separated
+
+summarizer2b <- function(df) {
+  
+  dfn <- NULL
+  
+  for(i in (unique(df$respvar))){
+    
+    tt <- subset(df, df$respvar == i)
+    
+    for(j in (unique(tt$hstype))){
+      
+      ts <- subset(tt, tt$hstype == j)
+      
+      if(length(ts$respvar) < 2){
+        
+        print(paste0("for ", i, " not enough rows."))
+        
+      } else{
+        
+        ts <- escalc(data = ts, yi = lnRR, vi = VarLnRR) # Just transforming in escalc object
+        varcov <- vcalc(vi = vi, cluster = article_type_id, data = ts, nearpd = TRUE) # cluster variances in variance-covariance matrix per study type for use in aggregate.
+        ts <- aggregate(x = ts, cluster = article_type_id, V = varcov, struct = "CS", weighted = FALSE) # aggregate effect sizes in single study effect size.
+        
+        out <- rma(data = ts, yi = yi, vi = vi)
+        
+        M <- round(out$b, 2)
+        SD <- out$se/sqrt(length(tt$respvar))
+        Vm <- SD^2
+        SE <- out$se
+        LL <- round(out$ci.lb, 2)
+        UL <- round(out$ci.ub, 2)
+        Z <- out$zval
+        pval <- round(out$pval, 4)
+        n    <- length(ts$respvar)
+        s    <- length(unique(ts$article_id))
+        v <- i
+        stype <- j
+      
+        dfn <- rbind(dfn, data.frame(v, M, Vm, SD, SE, LL, UL, Z, pval, n, s, stype))
+      }
+    }
   }
   return(dfn)
 }
