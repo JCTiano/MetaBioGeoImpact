@@ -26,7 +26,7 @@ library(scales)
 library(dplyr)
 library(gridExtra)
 library(maps)
-source("~/GitHub/Metastudy2/source_code/FIN_functions_meta_analysis.R")
+source("../source_code/FIN_functions_meta_analysis_reviewed.R")
 
 ```
 
@@ -42,12 +42,12 @@ rm(dfshort)
 rm(df)
 rm(GradInfo)
 
-load(file = "~/GitHub/Metastudy2/r_objects/shortdata.rda")
-load(file = "~/GitHub/Metastudy2/r_objects/Grad_new.rda")
+load(file = "../r_objects/shortdata.rda")
+load(file = "../r_objects/Grad_new.rda")
 GradInfo <-  df # Gradient study
 GradInfo$Response.variable[GradInfo$Response.variable == "OM (LOI)"] <- "TOC"
 
-load(file = "~/GitHub/Metastudy2/r_objects/SummaryEF_Gradients_new.rda")
+load(file = "../r_objects/SummaryEF_Gradients_new.rda")
 
 ```
 
@@ -260,7 +260,7 @@ seasonplot <- ggplot(data = season, aes(x = season[,1])) +
 dfshort$CTRLhisttrawledplot         <- as.factor(dfshort$CTRLhisttrawled)
 levels(dfshort$CTRLhisttrawledplot) <- c("No", "Yes", "No information")
 dfshort$CTRLhisttrawledplot[is.na(dfshort$CTRLhisttrawledplot)] <- "No information"
-gra           <- dfgrad[,c(6, 1, 5)]
+gra           <- df[,c(6, 1, 5)]
 colnames(gra) <- colnames(histfishedsplit)
 gra           <- gra[c(1:6,6,7,7,8,8,9:14),]
 gra$`dfshort$article_type_id`[c(7,9,11)] <- c(41.1, 49.1, 53.)
@@ -298,7 +298,7 @@ combined_plots <- combined_plots +
 
 # Display the combined plots
 combined_plots
-ggsave("~/GitHub/Metastudy2/final_review/figure1_info_world_season_stype_depth.png", units = "in", height = 10, width = 12)
+ggsave("../final_review/figure1_info_world_season_stype_depth.png", units = "in", height = 10, width = 12)
 
 ```
 
@@ -390,7 +390,7 @@ combined_plots <- combined_plots +
 # Display the combined plots
 combined_plots
 
-ggsave("~/GitHub/Metastudy2/final_review/figure1SUPPLEMENT_info_strategy_stype_geartype.png", units = "in", height = 10, width = 12)
+ggsave("../final_review/figure1SUPPLEMENT_info_strategy_stype_geartype.png", units = "in", height = 10, width = 12)
 
 ```
 
@@ -448,7 +448,7 @@ combined_plots <- combined_plots +
 # Display the combined plots
 combined_plots
 
-ggsave("~/GitHub/Metastudy2/final_review/figure1SUPPLEMENT_info_strategy_stype_geartype.png", units = "in", height = 6, width = 12)
+ggsave("../final_review/figure1SUPPLEMENT_info_strategy_stype_geartype.png", units = "in", height = 6, width = 12)
 
 ```
 
@@ -485,7 +485,7 @@ variablesfull <- ggplot(data = tab, aes(x = Var1, y = studies)) +
 
 variablesfull
 
-ggsave("~/GitHub/Metastudy2/final_review/SUPPLEMENT_samples_per_variable_dfshort.png", units = "in", height = 5, width = 9)
+ggsave("../final_review/SUPPLEMENT_samples_per_variable_dfshort.png", units = "in", height = 5, width = 9)
 
 ### Variables >= 3 studies
 variables_impobs_exp_3 <- ggplot(subset(tab, studies >= 3), aes(x = Var1, y = studies)) +
@@ -495,7 +495,7 @@ variables_impobs_exp_3 <- ggplot(subset(tab, studies >= 3), aes(x = Var1, y = st
                           geom_text(data = subset(tab, studies >= 3), aes(x = Var1, y = studies, label = Freq), vjust = -0.5, color = "black", size = 3) +
                           theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
-ggsave("~/GitHub/Metastudy2/final_review/SUPPLEMENT_samples_per_variable_expobs_morethan3studies.png", units = "in", height = 5, width = 9)
+ggsave("../final_review/SUPPLEMENT_samples_per_variable_expobs_morethan3studies.png", units = "in", height = 5, width = 9)
 
 ## Gradient studies
 ### All variables
@@ -521,7 +521,7 @@ variablesfull <- ggplot(data = tabgrad, aes(x = Var1, y = studies)) +
                  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 
-ggsave("~/GitHub/Metastudy2/final_review/SUPPLEMENT_samples_per_variable_gradients.png", units = "in", height = 5, width = 9)
+ggsave("../final_review/SUPPLEMENT_samples_per_variable_gradients.png", units = "in", height = 5, width = 9)
 
 ### Variables >= 3 studies
 variables_grad_3 <- ggplot(subset(tabgrad, studies >= 3), aes(x = Var1, y = studies)) +
@@ -534,14 +534,14 @@ variables_grad_3 <- ggplot(subset(tabgrad, studies >= 3), aes(x = Var1, y = stud
 
 variables_grad_3
 
-ggsave("~/GitHub/Metastudy2/final_review/SUPPLEMENT_samples_per_variable_gradient_morethan3studies.png", units = "in", height = 5, width = 9)
+ggsave("../final_review/SUPPLEMENT_samples_per_variable_gradient_morethan3studies.png", units = "in", height = 5, width = 9)
 
 ## Combined > 3 studies
 combined_plots <- variables_impobs_exp_3 + variables_grad_3
 combined_plots <- combined_plots + plot_layout(guides = "collect", ncol = 1) + plot_annotation(tag_levels = 'A')
 combined_plots
 
-ggsave("~/GitHub/Metastudy2/final_review/SUPPLEMENT_variables_allstudytypes_morethan3studies.png", units = "in", height = 12, width = 9)
+ggsave("../final_review/SUPPLEMENT_variables_allstudytypes_morethan3studies.png", units = "in", height = 12, width = 9)
 
 ```
 
@@ -645,9 +645,7 @@ layout <- c(
 # final plot arrangement
 pleft + p + pright + plot_layout(design = layout)
 
-#ggsave("~/GitHub/Metastudy2/figures_final/Figure2_expobs_trueresponse.png", units = "in", height = 8, width = 10)
-
-pdf("~/GitHub/Metastudy2/final_review/Figure2_trueresponseCORRECTED.pdf", height = 8, width = 10) # JT
+pdf("../final_review/Figure2_trueresponseCORRECTED.pdf", height = 8, width = 10) # JT
 pleft + p + pright + plot_layout(design = layout)
 dev.off()
 
@@ -757,13 +755,11 @@ layout <- c(
 # final plot arrangement
 pleft + p + pright + plot_layout(design = layout)
 
-#ggsave("~/GitHub/Metastudy2/figures_final/Figure2SUPPLEMENT_expobs_separated_trueresponse.png", units = "in", height = 10, width = 10)
-
-pdf("~/GitHub/Metastudy2/final_review/Figure2SUPPLEMENT_expobs_separated_CORRECTED.pdf", height = 8, width = 10) # JT
+pdf("../final_review/Figure2SUPPLEMENT_expobs_separated_CORRECTED.pdf", height = 8, width = 10) # JT
 pleft + p + pright + plot_layout(design = layout)
 dev.off()
 
-png("~/GitHub/Metastudy2/final_review/Figure2SUPPLEMENT_expobs_separated_CORRECTED.png", height = 8, width = 10, units = "in", res = 330) # JT
+png("../final_review/Figure2SUPPLEMENT_expobs_separated_CORRECTED.png", height = 8, width = 10, units = "in", res = 330) # JT
 pleft + p + pright + plot_layout(design = layout)
 dev.off()
 
@@ -775,7 +771,7 @@ To see the data, print the object "gradplot" after running this chunk.
 
 ```{r label, options}
 
-load(file = "~/GitHub/Metastudy2/r_objects/SummaryEF_Gradients_new.Rda")
+load(file = "../r_objects/SummaryEF_Gradients_new.Rda")
 
 gradplot <- data.frame(v = sumData2$Variable, M = sumData2$M, LL = sumData2$LowerBound, UL = sumData2$UpperBound, pval = NA, n = sumData2$Observations, s = sumData2$Studies)
 
@@ -831,8 +827,7 @@ layout <- c(
 # final plot arrangement
 pleft + p + pright + plot_layout(design = layout)
 
-#ggsave("~/GitHub/Metastudy2/figures_final/Figure2_grad_trueresponse.png", units = "in", height = 2.5, width = 10)
-pdf("~/GitHub/Metastudy2/final_review/Figure2_grad_trueresponseJT.pdf", height = 2.5, width = 10) #JT
+pdf("../final_review/Figure2_grad_trueresponseJT.pdf", height = 2.5, width = 10) #JT
 pleft + p + pright + plot_layout(design = layout)
 dev.off()
 
@@ -1106,7 +1101,7 @@ slicemods <- rbind(modTab(modTOCslice, var = "TOC"),
                    modTab(modSiltslice, var = "Silt"),
                    modTab(modProtslice, var = "Protein"),
                    modTab(modNHxslice, var = "NHx"))
-write.table(slicemods, file = "~/GitHub/Metastudy2/tables_final/slices.txt", sep = ",", quote = FALSE, row.names = F)
+write.table(slicemods, file = "../tables_final/slices.txt", sep = ",", quote = FALSE, row.names = F)
 
 ```
 
@@ -1136,9 +1131,7 @@ combined_plots <- combined_plots +
 # Display the combined plots
 combined_plots
 
-# ggsave("~/GitHub/Metastudy2/figures_final/figure3_slicedepth_significantparmsandtn.png", units = "in", height = 10, width = 8)  
-
-ggsave("~/GitHub/Metastudy2/final_review/figure3_slicedepth_significantparmsandtn.pdf", units = "in", height = 10, width = 8)  
+ggsave("../final_review/figure3_slicedepth_significantparmsandtn.pdf", units = "in", height = 10, width = 8)  
 
 
 # Saving the rest
@@ -1153,9 +1146,8 @@ combined_plots <- combined_plots +
 
 # Display the combined plots
 combined_plots
-# ggsave("~/GitHub/Metastudy2/figures_final/figure3SUPPLEMENT_slicedepth_nonsig.png", units = "in", height = 5, width = 15)  
 
-ggsave("~/GitHub/Metastudy2/final_review/figure3SUPPLEMENT_slicedepth_nonsig.pdf", units = "in", height = 5, width = 15)  
+ggsave("../final_review/figure3SUPPLEMENT_slicedepth_nonsig.pdf", units = "in", height = 5, width = 15)  
 
 ```
 
@@ -1247,7 +1239,7 @@ modTOChab <- contvarplot(resp = "TOC", depvar = "hhabtype", df = dfshort, xlabz 
 toc_mods           <- rbind(modTOCtst, modTOCtfr, modTOCcur, modTOCwat, modTOCnpp, modTOCsea, modTOChab)
 toc_mods[,c(4:11)] <- round(toc_mods[,c(4:11)], 3)
 
-write.table(toc_mods, file = "~/GitHub/Metastudy2/tables_final/toc_models.txt", sep = ",", quote = FALSE, row.names = F)
+write.table(toc_mods, file = "../tables_final/toc_models.txt", sep = ",", quote = FALSE, row.names = F)
 
 ```
 
@@ -1330,7 +1322,7 @@ modTNhab <- contvarplot(resp = "TN", depvar = "hhabtype", df = dfshort, xlabz = 
 
 tn_mods           <- rbind(modTNtst, modTNtfr, modTNcur, modTNwat, modTNnpp, modTNsea)
 tn_mods[,c(4:11)] <- round(tn_mods[,c(4:11)], 3)
-write.table(tn_mods, file = "~/GitHub/Metastudy2/tables_final/tn_models.txt", sep = ",", quote = FALSE, row.names = F)
+write.table(tn_mods, file = "../tables_final/tn_models.txt", sep = ",", quote = FALSE, row.names = F)
 
 ```
 
@@ -1411,7 +1403,7 @@ modChlahab <- contvarplot(resp = "Chl-a", depvar = "hhabtype", df = dfshort, xla
 
 Chla_mods           <- rbind(modChlatst, modChlatfr, modChlacur, modChlawat, modChlanpp, modChlasea, modChlahab)
 Chla_mods[,c(4:11)] <- round(Chla_mods[,c(4:11)], 3)
-write.table(Chla_mods, file = "~/GitHub/Metastudy2/tables_final/Chla_models.txt", sep = ",", quote = FALSE, row.names = F)
+write.table(Chla_mods, file = "~../tables_final/Chla_models.txt", sep = ",", quote = FALSE, row.names = F)
 
 ```
 
@@ -1492,7 +1484,7 @@ modphaeohab <- contvarplot(resp = "Phaeopigments", depvar = "hhabtype", df = dfs
 
 phaeo_mods           <- rbind(modphaeotst, modphaeotfr, modphaeocur, modphaeowat, modphaeonpp, modphaeosea, modphaeohab)
 phaeo_mods[,c(4:11)] <- round(phaeo_mods[,c(4:11)], 3)
-write.table(phaeo_mods, file = "~/GitHub/Metastudy2/tables_final/phaeo_models.txt", sep = ",", quote = FALSE, row.names = F)
+write.table(phaeo_mods, file = "../tables_final/phaeo_models.txt", sep = ",", quote = FALSE, row.names = F)
 
 ```
 
@@ -1573,7 +1565,7 @@ modphytohab <- contvarplot(resp = "Phytopigments", depvar = "hhabtype", df = dfs
 
 phyto_mods           <- rbind(modphytotst, modphytotfr, modphytocur, modphytowat, modphytonpp, modphytosea, modphytohab)
 phyto_mods[,c(4:11)] <- round(phyto_mods[,c(4:11)], 3)
-write.table(phyto_mods, file = "~/GitHub/Metastudy2/tables_final/phyto_models.txt", sep = ",", quote = FALSE, row.names = F)
+write.table(phyto_mods, file = "../tables_final/phyto_models.txt", sep = ",", quote = FALSE, row.names = F)
 
 ```
 
@@ -1654,7 +1646,7 @@ modmgshab <- contvarplot(resp = "Mean grain size", depvar = "hhabtype", df = dfs
 
 mgs_mods           <- rbind(modmgstst, modmgstfr, modmgscur, modmgswat, modmgsnpp, modmgssea)
 mgs_mods[,c(4:11)] <- round(mgs_mods[,c(4:11)], 3)
-write.table(mgs_mods, file = "~/GitHub/Metastudy2/tables_final/mgs_models.txt", sep = ",", quote = FALSE, row.names = F)
+write.table(mgs_mods, file = "../tables_final/mgs_models.txt", sep = ",", quote = FALSE, row.names = F)
 
 ```
 
@@ -1735,7 +1727,7 @@ modsilthab <- contvarplot(resp = "Silt", depvar = "hhabtype", df = dfshort, xlab
 
 silt_mods           <- rbind( modsiltcur, modsiltwat, modsiltnpp, modsiltsea, modsilthab)
 silt_mods[,c(4:11)] <- round(silt_mods[,c(4:11)], 3)
-write.table(silt_mods, file = "~/GitHub/Metastudy2/tables_final/silt_models.txt", sep = ",", quote = FALSE, row.names = F)
+write.table(silt_mods, file = "../tables_final/silt_models.txt", sep = ",", quote = FALSE, row.names = F)
 
 ```
 
@@ -1816,7 +1808,7 @@ modprothab <- contvarplot(resp = "Proteins", depvar = "hhabtype", df = dfshort, 
 
 prot_mods           <- rbind(modprottst, modprottfr, modprotcur, modprotwat, modprotnpp, modprotsea, modprothab)
 prot_mods[,c(4:11)] <- round(prot_mods[,c(4:11)], 3)
-write.table(prot_mods, file = "~/GitHub/Metastudy2/tables_final/prot_models.txt", sep = ",", quote = FALSE, row.names = F)
+write.table(prot_mods, file = "../tables_final/prot_models.txt", sep = ",", quote = FALSE, row.names = F)
 
 ```
 
@@ -1897,11 +1889,11 @@ modNHxhab <- contvarplot(resp = "NHx", depvar = "hhabtype", df = dfshort, xlabz 
 
 NHx_mods           <- rbind(modNHxcur, modNHxwat, modNHxnpp, modNHxsea, modNHxhab)
 NHx_mods[,c(4:11)] <- round(NHx_mods[,c(4:11)], 3)
-write.table(NHx_mods, file = "~/GitHub/Metastudy2/tables_final/NHx_models.txt", sep = ",", quote = FALSE, row.names = F)
+write.table(NHx_mods, file = "../tables_final/NHx_models.txt", sep = ",", quote = FALSE, row.names = F)
 
 ```
 
-## Figure 4: Regressions --\> TODO.
+## Figure 4: Regressions --\> 
 
 Here we select whichever regressions we think are nice and should be shown in the manuscript.
 
@@ -2029,7 +2021,7 @@ gradplot <- gradplot +  plot_annotation(tag_levels = "A") +
 
 gradplot
 
-ggsave("~/GitHub/Metastudy2/figures_final/Heatmap_coefficients.png", units = "in", height = 13, width = 16)  
+ggsave("../figures_final/Heatmap_coefficients.png", units = "in", height = 13, width = 16)  
 
 hmi_chla  <- plothmint(mods[[1]])
 hmi_phyt  <- plothmint(mods[[2]])
@@ -2048,8 +2040,7 @@ gradploti <- gradploti +  plot_annotation(tag_levels = "A") +
 
 gradploti
 
-#ggsave("~/GitHub/Metastudy2/figures_final/Heatmap_intercepts.png", units = "in", height = 13, width = 16)  
-ggsave("~/GitHub/Metastudy2/figures_final/Heatmap_intercepts.png", units = "in", height = 13, width = 16)  
+ggsave("../figures_final/Heatmap_intercepts.png", units = "in", height = 13, width = 16)  
 
 unique(mods[[1]]$Covar)
 
@@ -2069,7 +2060,7 @@ hm_phae  <- plothmcoeff2(ph, labz = FALSE)
 hm_toc   <- plothmcoeff2(oc)
 hm_tn    <- plothmcoeff2(tn, labz = FALSE)
 
-pdf("~/GitHub/Metastudy2/figures_final/Heatmaps2.pdf", height = 8, width = 10) #
+pdf("../figures_final/Heatmaps2.pdf", height = 8, width = 10) #
 
 gradplot2 <- hm_chla + hm_phae + hm_toc + hm_tn
 

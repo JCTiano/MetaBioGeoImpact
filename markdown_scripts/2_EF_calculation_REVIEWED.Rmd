@@ -31,7 +31,7 @@ library(scales)
 library(dplyr)
 library(gridExtra)
 library(maps)
-source("~/GitHub/Metastudy2/source_code/Plot.functions.R")
+source("../source_code/Plot.functions.R")
 
 ```
 
@@ -129,7 +129,7 @@ variablesfull <- ggplot(table_fulldata, aes(x = Var1, y = Freq)) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 variablesfull
-ggsave("../figures/final_review/samples_per_variable_fulldata.png", units = "in", height = 5, width = 9)
+ggsave("../final_review/samples_per_variable_fulldata.png", units = "in", height = 5, width = 9)
 
 variablesmorethan10 <- ggplot(subset(table_fulldata, Freq >= 10), aes(x = Var1, y = Freq)) +
   geom_bar(stat = "identity", fill = "lightgrey") +
@@ -140,7 +140,7 @@ variablesmorethan10 <- ggplot(subset(table_fulldata, Freq >= 10), aes(x = Var1, 
 
 variablesmorethan10
 
-ggsave("../figures/final_review/samples_per_variable_fulldata_morethan10.png", units = "in", height = 5, width = 9)
+ggsave("../final_review/samples_per_variable_fulldata_morethan10.png", units = "in", height = 5, width = 9)
 
 ```
 

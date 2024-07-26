@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 load("Grad_new.rda")
 GradInfo = df
+load("../../r_objects/fulldata.rda")
 ```
 
 ## Selecting columns and merging
@@ -273,7 +274,7 @@ combined_plots_2 <- combined_plots_2 +
 
 # Display the combined plots
 combined_plots_2
-ggsave("~/GitHub/Metastudy2/figures/final/meta_new.png", units = "in", height = 10, width = 12)
+ggsave("../../figures/final/meta_new.png", units = "in", height = 10, width = 12)
 
 
 # Combine the plots using patchwork
@@ -292,7 +293,7 @@ combined_plots_3 <- combined_plots_3 +
 
 # Display the combined plots
 combined_plots_3
-ggsave("../figures/final/meta_info_alt2.png", units = "in", height = 10, width = 12)
+ggsave("../../figures_final/meta_info_alt2.png", units = "in", height = 10, width = 12)
 
 
 # Make a dataframe with unique combinations of variables.
@@ -345,37 +346,8 @@ combined_plots <- combined_plots +
 
 # Display the combined plots
 combined_plots
-ggsave("~/GitHub/Metastudy2/figures/final/meta_info_sampleinfo_new.png", units = "in", height = 6, width = 12)
+ggsave("../../figures_final/meta_info_sampleinfo_new.png", units = "in", height = 6, width = 12)
 
 
-ggsave("../figures/final/meta_info_sampleinfo.png", units = "in", height = 4, width = 4)
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-```{r}
-par(mar = c(4,5,2,4))
-plot(NA, xlim = c(-1,1), ylim = c(0,5), ylab = "", axes = F, xlab = "Fishers Z", main = "Fuckin Gradients! (n = 29, I guess)")
-boxplot(df$r[df$Response.variable=="TN"],
-        df$r[df$Response.variable=="OM (LOI)"],
-        df$r[df$Response.variable=="Chl-a"], 
-        df$r[df$Response.variable=="TOC"], 
-        boxlwd = 2, whisklty=1, whisklwd=2, staplewex=0,lwd = 2, boxwex = 0.75,
-        outline = TRUE, ylim = c(-1,1),
-        horizontal = TRUE, add = TRUE
-        )
-abline(v = 0, lwd = 2)
-axis(2, at = 4:1, labels = c("TOC", "Chl-a", "OM (LOI)", "TN"), las = 1)
-axis(4, at = 4:1, labels = c("n=13", "n=4", "n=9", "n=3"), las = 1)
+ggsave("../../figures_final/meta_info_sampleinfo.png", units = "in", height = 4, width = 4)
 ```

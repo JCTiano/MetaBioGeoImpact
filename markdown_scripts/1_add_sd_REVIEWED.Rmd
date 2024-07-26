@@ -99,18 +99,6 @@ This part imputes standard deviations where possible and adds labels of which ac
 
 `%notin%` <- Negate(`%in%`) 
 
-# Function is missSD and requires columns of the specific treatment to be filled in.
-# I don't think i can use all treatments together to calculate missing sd.
-## Debugging
-# dff = newdf
-# mean = "response1"
-# sd = "SD1"
-# nc = "n1"
-# notes = "note"
-#  i <- "bacterial C production"
-# notesspec <- "noteresp1"
-# re <- "response1"
-
 inflist <- NULL
 
 missingSD <- function(dff, mean, sd, nc, notes, notesspec, re, infolist){
